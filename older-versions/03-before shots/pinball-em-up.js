@@ -130,9 +130,9 @@ window.onload = function(){
 
 			bgCtx.fillStyle = PADDLE_COLOR;
 			var char = x==identity ? leftChar : rightChar;
-			bgCtx.fillText(toChar(char),x(tableHeight+cornerRadius+130)-2,y(50)-3);
+			bgCtx.fillText(toChar(char),x(tableHeight+cornerRadius+35)-2,y(35)-3);
 			char = y==identity ? upChar : downChar;
-			bgCtx.fillText(toChar(char),x(50)-2,y(tableHeight+cornerRadius+130)-3);
+			bgCtx.fillText(toChar(char),x(35)-2,y(tableHeight+cornerRadius+35)-3);
 		}
 
 		buildWall(identity,identity);
@@ -244,13 +244,7 @@ window.onload = function(){
 		for(var i=0;i<pads.length;i++){
 			var pad = pads[i];
 			var left = !pad.mirror;
-			var move;
-			if(pad.table==1){
-				move = !left ? keys.down || keys.left : keys.up || keys.right;
-			}else{
-				move = left ? keys.up || keys.left : keys.down || keys.right;
-			}
-
+			var move = (left && (keys.up || keys.left)) || (!left && (keys.down || keys.right));
 			var dx = pad.ux; //Vector going from pad pivot to pad edge
 			var dy = pad.uy;
 			pad.cpt = pad.cpt || 0;
@@ -1245,3 +1239,27 @@ window.onload = function(){
 		return false;
 	};
 };
+;(function() {
+    var lastTime = 0;
+    var vendors = ['webkit', 'moz'];
+    for(var x = 0; x < vendors.length && !window.requestAnimationFrame; ++x) {
+        window.requestAnimationFrame = window[vendors[x]+'RequestAnimationFrame'];
+        window.cancelAnimationFrame =
+            window[vendors[x]+'CancelAnimationFrame'] || window[vendors[x]+'CancelRequestAnimationFrame'];
+    }
+
+    if (!window.requestAnimationFrame)
+        window.requestAnimationFrame = function(callback, element) {
+            var currTime = new Date().getTime();
+            var timeToCall = Math.max(0, 16 - (currTime - lastTime));
+            var id = window.setTimeout(function() { callback(currTime + timeToCall); },
+                timeToCall);
+            lastTime = currTime + timeToCall;
+            return id;
+        };
+
+    if (!window.cancelAnimationFrame)
+        window.cancelAnimationFrame = function(id) {
+            clearTimeout(id);
+        };
+}());
