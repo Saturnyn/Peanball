@@ -21,8 +21,8 @@ window.onload = function(){
 	var TOP = 2;
 	var LEFT = 3;
 
-	var tableWidth = 600;
-	var tableHeight = 200;
+	var tableWidth = 700;
+	var tableHeight = 300;
 	var cornerRadius = 300;
 	var centerRadius = cornerRadius + tableWidth/2;
 	centerRadius = pyth(centerRadius,centerRadius) - cornerRadius >> 0;
@@ -36,26 +36,26 @@ window.onload = function(){
 	var bgCanvas = makeCanvas(totalSize, totalSize);
 	var bgCtx = getContext(bgCanvas);
 
-	var fxCanvas = makeCanvas(totalSize,totalSize);
-	var fxCtx = getContext(fxCanvas);
-
-	var tempCanvas = makeCanvas(tileSize, tileSize);
-	var tempCtx = getContext(tempCanvas);
-
 	var renderCanvas = makeCanvas(screenWidth,screenHeight);
 	var renderCtx = getContext(renderCanvas);
 
+	var fxCanvas = makeCanvas(screenWidth,screenHeight);
+	var fxCtx = getContext(fxCanvas);
 
+	var entityCanvas = makeCanvas(screenWidth,screenHeight);
+	var entityCtx = getContext(entityCanvas);
 
-	var cameraX = 0;
-	var cameraY = 0;
+	var cameraX;
+	var cameraY;
+	var prevCameraX;
+	var prevCameraY;
 
 	window.onresize = function(){
 		screenWidth = clamp(win.innerWidth,tableWidth,totalSize);
 		screenHeight = clamp(win.innerHeight,tableWidth,totalSize);
 		screenMinSize = Math.min(screenWidth,screenHeight);
-		renderCanvas.width = screenWidth = screenWidth-screenWidth%2;
-		renderCanvas.height = screenHeight = screenHeight-screenHeight%2;
+		entityCanvas.width = fxCanvas.width = renderCanvas.width = screenWidth = screenWidth-screenWidth%2;
+		entityCanvas.height = fxCanvas.height = renderCanvas.height = screenHeight = screenHeight-screenHeight%2;
 	};
 	body.onresize();
 
@@ -85,6 +85,9 @@ window.onload = function(){
 	var SHOT_COLOR = "#fa0";
 
 	function buildBackground(){
+		var tempCanvas = makeCanvas(tileSize, tileSize);
+		var tempCtx = getContext(tempCanvas);
+
 		//checkboard pattern
 		fillRect(tempCtx,0,0,tileSize,tileSize,TILE_LINE_COLOR); //"#fff");
 		fillRect(tempCtx,0,0,tileSize-1,tileSize-1,TILE_LINE_COLOR_2); //"#eee");
@@ -131,10 +134,10 @@ window.onload = function(){
 			addEntity( makeLine( x(tableHeight+cornerRadius), y(0), x(tableHeight+cornerRadius), y(tableHeight), BACKGROUND ) );
 
 			bgCtx.fillStyle = PADDLE_COLOR;
-			var char = x==identity ? leftChar : rightChar;
-			bgCtx.fillText(toChar(char),x(tableHeight+cornerRadius+130)-2,y(50)-3);
-			char = y==identity ? upChar : downChar;
-			bgCtx.fillText(toChar(char),x(50)-2,y(tableHeight+cornerRadius+130)-3);
+			var char_ = x==identity ? leftChar : rightChar;
+			bgCtx.fillText(toChar(char_),x(tableHeight+cornerRadius+130)-2,y(50)-3);
+			char_ = y==identity ? upChar : downChar;
+			bgCtx.fillText(toChar(char_),x(50)-2,y(tableHeight+cornerRadius+130)-3);
 		}
 
 		buildWall(identity,identity);
@@ -195,6 +198,7 @@ window.onload = function(){
 	}
 
 	function processInput(){
+
 		//boost sequence
 		if(!started){
 			if(keys.space){
@@ -214,52 +218,8 @@ window.onload = function(){
 				started = true;
 			}
 		}
-		if(mouse.right){
-			startCpt = 0;
-			started = true;
-			ball.x = mouse.x;
-			ball.y = mouse.y;
-			ball.a.x = ball.a.y = 0;
-			ball.v.x = ball.v.y = 0;
-			ball.boostCpt = 0;
-			mouse.right = false;
-			console.log("mouse teleport",ball);
-		}
 
-		if(mouse.left){
-			tempVector.x = mouse.x-ball.x;
-			tempVector.y = mouse.y-ball.y;
-			normalize(tempVector);
-
-			ball.a.x = tempVector.x*GRAVITY;
-			ball.a.y = tempVector.y*GRAVITY;
-
-			if(mouse.leftCpt%10===0){
-				var shot;
-				if(shots.length==shots.n){
-					shot = makeEntity(LINE,SHOT);
-					shots.push(shot);
-				}else{
-					shot = shots[shots.n];
-				}
-				shots.n++;
-
-				var shotSpeed = 20;
-				shot.x = ball.x + tempVector.x*(shotSpeed+ballRadius);
-				shot.y = ball.y + tempVector.y*(shotSpeed+ballRadius);
-				shot.v.x = tempVector.x*shotSpeed;
-				shot.v.y = tempVector.y*shotSpeed;
-
-				shot.cpt = 15;
-			}
-		}
-		if(mouse.left){
-			mouse.leftCpt++;
-		}else{
-			mouse.leftCpt=0;
-		}
-
-
+		//Paddles
 		for(var i=0;i<pads.length;i++){
 			var pad = pads[i];
 			var left = !pad.mirror;
@@ -309,6 +269,66 @@ window.onload = function(){
 
 
 		}
+
+		if(mouse.middle){
+			startCpt = 0;
+			started = true;
+			ball.x = mouse.x;
+			ball.y = mouse.y;
+			ball.a.x = ball.a.y = 0;
+			ball.v.x = ball.v.y = 0;
+			ball.boostCpt = 0;
+			mouse.right = false;
+			console.log("mouse teleport",ball);
+		}
+
+
+		if(mouse.right){
+			tempVector.x = mouse.x-ball.x;
+			tempVector.y = mouse.y-ball.y;
+			normalize(tempVector);
+			ball.boostCpt = 6;
+			ball.boostX = tempVector.x *2.5;
+			ball.boostY = tempVector.y *2.5;
+
+			mouse.right = false;
+		}
+
+
+		if(mouse.left){
+			tempVector.x = mouse.x-ball.x;
+			tempVector.y = mouse.y-ball.y;
+			normalize(tempVector);
+
+			/*
+			ball.a.x = tempVector.x*GRAVITY;
+			ball.a.y = tempVector.y*GRAVITY;
+			*/
+
+			if(mouse.leftCpt%10===0){
+				var shot;
+				if(shots.length==shots.n){
+					shot = makeEntity(LINE,SHOT);
+					shots.push(shot);
+				}else{
+					shot = shots[shots.n];
+				}
+				shots.n++;
+
+				var shotSpeed = 10;
+				shot.x = ball.x + tempVector.x*(shotSpeed+ballRadius);
+				shot.y = ball.y + tempVector.y*(shotSpeed+ballRadius);
+				shot.v.x = tempVector.x*shotSpeed;
+				shot.v.y = tempVector.y*shotSpeed;
+
+				shot.cpt = 100;
+			}
+		}
+		if(mouse.left){
+			mouse.leftCpt++;
+		}else{
+			mouse.leftCpt=0;
+		}
 	}
 
 	function updatePhysics(){
@@ -328,24 +348,15 @@ window.onload = function(){
 			dx = totalSize/2 - ball.x;
 			dy = totalSize/2 - ball.y;
 			var range = screenWidth/2;
-			//var range = totalSize/2;
-			if(dx*dx+dy*dy < range*range){
+			var distanceToCenter = pyth(dx,dy);
+			if(distanceToCenter < range){
 				//normalize
-				l = pyth(dx,dy);
-				dx/=l;
-				dy/=l;
-
-				gravity *= (0.2+0.8*l/range); //Close to the center, gravity gets weaker
-
-				/*
-				 l = (1-l/range);
-				 l *= GRAVITY*0.9;
-				 ball.a.x += dx*l;
-				 ball.a.y += dy*l;
-				 */
+				dx/=distanceToCenter;
+				dy/=distanceToCenter;
+				gravity *= (0.1+0.9*distanceToCenter/range); //Close to the center, gravity gets weaker
 			}
 
-			if(!ball.noGrav){
+			if(1){
 				//applied gravity depends on which quadrant the ball is in
 				var x = ball.x - totalSize/2,
 					y = ball.y - totalSize/2;
@@ -364,25 +375,19 @@ window.onload = function(){
 					}
 				}
 			}
-			ball.noGrav = false;
 
 			ball.a.x += gx;
 			ball.a.y += gy;
 
 
-
-
-
 			ball.v.x = (ball.v.x + ball.a.x);
 			ball.v.y = (ball.v.y + ball.a.y);
 
-			if(gx){
-				ball.v.x *= FRICTION;
-				ball.v.y *= FRICTION;
-			}else{
+			if(1){
 				ball.v.x *= FRICTION;
 				ball.v.y *= FRICTION;
 			}
+
 
 			if(ball.v.x*ball.v.x+ball.v.y*ball.v.y > maxSpeed*maxSpeed){
 				normalize(ball.v,maxSpeed);
@@ -558,10 +563,8 @@ window.onload = function(){
 										*/
 										var boostX = collisionVector.x*speed;
 										var boostY = collisionVector.y*speed;
-										//pb trajectories look the same too often
 
 										if(!ball.boostCpt){
-											console.log("   INITIAL BOOST!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
 											ball.boostCpt = boostCpt;
 											ball.boostX = boostX;
 											ball.boostY = boostY;
@@ -575,8 +578,6 @@ window.onload = function(){
 										ball.boostY *= (0.6+rand()*0.8);
 
 										console.log("   boosting",boostRatio,ball.boostCpt,ball.boostX,ball.boostY);
-										//ball.v.x = collisionVector.x * collisionVector.l;
-										//ball.v.y = collisionVector.y * collisionVector.l;
 
 										continue;
 									}
@@ -706,6 +707,8 @@ window.onload = function(){
 	*/
 
 	function updateCamera(){
+		prevCameraX = cameraX;
+		prevCameraY = cameraY;
 		/*
 		var x = ball.x - screenWidth/2;
 		var y = ball.y - screenHeight/2;
@@ -817,15 +820,38 @@ window.onload = function(){
 		}
 
 	}
+	drawCircle(fxCtx,totalSize/2,totalSize/2,200,"red");
 
 	function render(){
-		renderCtx.clearRect(0,0,screenWidth,screenHeight);
-		//Draw ball position
-		drawCircle(bgCtx,ball.x,ball.y,1, ball.collide ? "red": ball.boostCpt > 0 ? "orange":"white");
-		//Draw camera center position
-		drawCircle(bgCtx,cameraX+screenWidth/2,cameraY+screenHeight/2,1,TILE_LINE_COLOR_3);
+		clearCanvas(renderCtx);
+		clearCanvas(entityCtx);
 
-		drawImage(renderCtx, bgCanvas, -cameraX, -cameraY);
+		//save fxCtx
+		drawImage(renderCtx,fxCanvas,0,0);
+		//clear fxCtx
+		fxCtx.clearRect(0,0,screenWidth,screenHeight);
+		//drawCircle(fxCtx,0,0,1500,"red");
+		//draw backup canvas with lower opacity
+		fxCtx.save();
+		fxCtx.globalAlpha = 0.9;
+		drawImage(fxCtx,renderCanvas,-cameraX+prevCameraX,-cameraY+prevCameraY);
+		fxCtx.restore();
+		//clean render again
+		clearCanvas(renderCtx);
+
+		if(ball.boostCpt>0){
+			drawCircle(fxCtx,ball.x-cameraX,ball.y-cameraY,6, "orange");
+			drawCircle(fxCtx,ball.prevX-cameraX,ball.prevY-cameraY,6, "orange");
+		}else{
+			drawCircle(fxCtx,ball.x-cameraX,ball.y-cameraY,2, "white");
+		}
+
+		//Draw ball position
+		//drawCircle(bgCtx,ball.x,ball.y,10, ball.collide ? "red": ball.boostCpt > 0 ? "orange":"white");
+		//Draw camera center position
+		//drawCircle(bgCtx,cameraX+screenWidth/2,cameraY+screenHeight/2,1,TILE_LINE_COLOR_3);
+
+
 		for(var i=0 , len=entities.length ; i<len ; i++){
 			var e = entities[i];
 			var x = e.x-cameraX;
@@ -857,7 +883,7 @@ window.onload = function(){
 					}
 				}
 				if(fill || stroke){
-					drawCircle(renderCtx,x,y, e.r,fill,stroke, lineWidth);
+					drawCircle(entityCtx,x,y, e.r,fill,stroke, lineWidth);
 				}
 			}else if(e.shape == LINE){
 				if(e.kind==BACKGROUND){
@@ -873,7 +899,7 @@ window.onload = function(){
 					}
 				}
 				if(stroke){
-					drawLine(renderCtx, e.x-cameraX, e.y-cameraY, e.x2-cameraX, e.y2-cameraY,stroke,2);
+					drawLine(entityCtx, e.x-cameraX, e.y-cameraY, e.x2-cameraX, e.y2-cameraY,stroke,2);
 				}
 
 				/*
@@ -890,23 +916,31 @@ window.onload = function(){
 		//draw shots
 		for(i=0 , len=shots.n ; i<len ; i++){
 			shot = shots[i];
-			//drawLine(renderCtx, shot.x-cameraX, shot.y-cameraY, shot.x-shot.v.x-cameraX, shot.y-shot.v.y-cameraY,SHOT_COLOR,3);
-			drawLine(renderCtx, shot.x-cameraX, shot.y-cameraY, shot.x-shot.v.x-cameraX, shot.y-shot.v.y-cameraY,SHOT_COLOR,10);
+			//drawLine(renderCtx, shot.x-cameraX, shot.y-cameraY, shot.x-shot.v.x-cameraX, shot.y-shot.v.y-cameraY,SHOT_COLOR,10);
+			drawCircle(entityCtx, shot.x-cameraX, shot.y-cameraY, 4,SHOT_COLOR);
+			drawLine(fxCtx, shot.x-cameraX, shot.y-cameraY, shot.x-shot.v.x-cameraX, shot.y-shot.v.y-cameraY,SHOT_COLOR,2);
+
+			//drawCircle(fxCtx, shot.x-cameraX, shot.y-cameraY, 2, SHOT_COLOR);
+			//drawCircle(fxCtx, shot.x-shot.v.x-cameraX, shot.y-shot.v.y-cameraY, 2, SHOT_COLOR);
 		}
 
 
 		//Draw acceleration vector
-		drawLine(renderCtx,
+		drawLine(entityCtx,
 			ball.x-cameraX,
 			ball.y-cameraY,
 			ball.x-cameraX + ball.v.x*10,
 			ball.y-cameraY + ball.v.y*10,
 			"#0f0",3);
+
+		drawImage(renderCtx, bgCanvas, -cameraX, -cameraY);
+		drawImage(renderCtx, fxCanvas, 0, 0);
+		drawImage(renderCtx, entityCanvas, 0, 0);
+
 	}
 
 	function tic(){
 		processInput();
-		render();
 		updatePhysics();
 		updateCamera();
 		render();
@@ -1235,6 +1269,9 @@ window.onload = function(){
 		ctx.stroke();
 	}
 
+	function clearCanvas(ctx){
+		ctx.clearRect(0,0,screenWidth,screenHeight);
+	}
 
 	//-----------------------------------------------------------
 	// Input
@@ -1280,13 +1317,18 @@ window.onload = function(){
 
 	function onmouse(isDown,e){
 		var rightClick;
+		var middleClick;
 		if ("which" in e){ // Gecko (Firefox), WebKit (Safari/Chrome) & Opera
 			rightClick = e.which == 3;
+			middleClick = e.which == 2;
 		}else if ("button" in e){  // IE, Opera
 			rightClick = e.button == 2;
+			middleClick = e.button == 1;
 		}
 		if(rightClick){
 			mouse.right = isDown;
+		}else if(middleClick){
+			mouse.middle = isDown;
 		}else{
 			mouse.left = isDown;
 		}
