@@ -22,8 +22,8 @@ window.onload = function(){
 	var LEFT = 3;
 
 	var tableWidth = 700;
-	var tableHeight = 300;
-	var cornerRadius = 300;
+	var tableHeight = 200;
+	var cornerRadius = 200;
 	var centerRadius = cornerRadius + tableWidth/2;
 	centerRadius = pyth(centerRadius,centerRadius) - cornerRadius >> 0;
 	var screenWidth;
@@ -617,7 +617,7 @@ window.onload = function(){
 						var sin = Math.sin(Math.acos(cos));
 						if(sin<0) sin=-sin;
 
-						var bounciness = e.bounciness || 0.2;
+						var bounciness = e.kind == BUMPER ? 2 : 0.2;
 
 						collisionVector.x *= cos * bounciness * vl;
 						collisionVector.y *= cos * bounciness * vl;
@@ -963,14 +963,19 @@ window.onload = function(){
 		ball = addEntity( makeCircle(totalSize/2, totalSize-50, ballRadius, BALL));
 		//ball = addEntity( makeCircle(400, totalSize/2-80, ballRadius, BALL));
 
-		addMultipleAndMirror( makeCircle(60,250,30,BUMPER));
 		//addMultipleAndMirror( makeLine(0,200,180,80,OBSTACLE));
-		addMultipleAndMirror( makeLine(0,200,150,100,OBSTACLE));
+		addMultipleAndMirror( makeLine(0,220,150,100,OBSTACLE));
+
+
+		addMultiple( makeCircle(70,260,30,BUMPER));
+		addMultiple( makeCircle(600,400,30,BUMPER));
+		addMultiple( makeCircle(300,600,30,BUMPER));
+
 
 		//addMultipleAndMirror( makeLine(100,450,200,450,OBSTACLE));
 
 
-		addMultipleAndMirror( makeLine(150,100,270,50,PADDLE));
+		addMultipleAndMirror( makeLine(150,100,300,30,PADDLE));
 		pads = entities.slice(-8);
 		var pad = pads[0];
 		var padLength = pyth(pad.x-pad.x2, pad.y-pad.y2);
