@@ -1,13 +1,15 @@
 window.onload = function(){
 	"use strict";
+
 	var win = window;
 	var document = win.document;
 	var body = document.body;
 	var Math = win.Math;
 
+	var PI = Math.PI;
 	var sqrt = Math.sqrt;
-	var sqrt2 = sqrt(2);
 	var rand = Math.random;
+
 	var toChar = String.fromCharCode;
 
 	//------------------------------------------------------------------------------------------------------------------
@@ -16,10 +18,10 @@ window.onload = function(){
 
 
 	//used for entity.table
-	var BOTTOM = 0;
-	var RIGHT = 1;
-	var TOP = 2;
-	var LEFT = 3;
+	//var BOTTOM = 0;
+	//var RIGHT = 1;
+	//var TOP = 2;
+	//var LEFT = 3;
 
 	var tableWidth = 700;
 	var tableHeight = 200;
@@ -31,6 +33,7 @@ window.onload = function(){
 	var screenMinSize;
 
 	var totalSize = tableWidth + 2*tableHeight + 2*cornerRadius;
+	var halfSize = totalSize/2;
 	var tileSize = 20;
 
 	var bgCanvas = makeCanvas(totalSize, totalSize);
@@ -99,8 +102,8 @@ window.onload = function(){
 		drawLine(bgCtx,totalSize,0,0,totalSize,TILE_LINE_COLOR_3);
 
 		//middle circles
-		drawCircle(bgCtx,totalSize/2,totalSize/2,8,TILE_FILL_COLOR,TILE_LINE_COLOR_3);
-		//drawCircle(bgCtx,totalSize/2,totalSize/2,centerRadius,null,TILE_LINE_COLOR_3,1);
+		drawCircle(bgCtx,halfSize,halfSize,8,TILE_FILL_COLOR,TILE_LINE_COLOR_3);
+		//drawCircle(bgCtx,halfSize,halfSize,centerRadius,null,TILE_LINE_COLOR_3,1);
 
 		var upChar = 0x21e7;
 		var downChar = 0x21e9;
@@ -114,10 +117,11 @@ window.onload = function(){
 		function buildWall(x,y){
 			//draw
 			var m = 4; //margin
-			bgCtx.beginPath();
 			bgCtx.strokeStyle = WALL_COLOR;
 			bgCtx.fillStyle = VOID_COLOR;
 			bgCtx.lineWidth = 2;
+
+			bgCtx.beginPath();
 			bgCtx.moveTo( x(-m), y(-m) );
 			bgCtx.lineTo( x(tableHeight+cornerRadius), y(-m) );
 			bgCtx.lineTo( x(tableHeight+cornerRadius), y(tableHeight) );
@@ -167,6 +171,8 @@ window.onload = function(){
 	var shots;
 	var ball;
 	var pads;
+	var movingBumbers;
+
 	var maxSpeed = 15;
 	var ballRadius = 14;
 	var GRAVITY = 0.2;
@@ -332,7 +338,17 @@ window.onload = function(){
 	}
 
 	function updatePhysics(){
-		var i,len;
+		var i,len,e;
+
+		//rotate moving bumbers
+		for(i=0,len=movingBumbers.length ; i<len ; i++){
+			e = movingBumbers[i];
+			e.a = (e.a+e.da*2*PI);
+			//moving bumper
+			e.x = halfSize+Math.cos(e.a)* e.d;
+			e.y = halfSize+Math.sin(e.a)* e.d;
+		}
+
 		//Update ball physics
 		if(started){
 			if(ball.boostCpt>0){
@@ -345,8 +361,8 @@ window.onload = function(){
 
 			var gravity = GRAVITY;
 			//TEST: add attraction force to the screen center
-			dx = totalSize/2 - ball.x;
-			dy = totalSize/2 - ball.y;
+			dx = halfSize - ball.x;
+			dy = halfSize - ball.y;
 			var range = screenWidth/2;
 			var distanceToCenter = pyth(dx,dy);
 			if(distanceToCenter < range){
@@ -358,8 +374,8 @@ window.onload = function(){
 
 			if(1){
 				//applied gravity depends on which quadrant the ball is in
-				var x = ball.x - totalSize/2,
-					y = ball.y - totalSize/2;
+				var x = ball.x - halfSize,
+					y = ball.y - halfSize;
 
 				if(y>x){ //bottom left
 					if(y>-x){ //bottom right
@@ -401,11 +417,13 @@ window.onload = function(){
 			//console.log("====================================================================================");
 			//console.log("loop","collided",ball.collide,"boost",ball.boostCpt);
 
+
+
 			ball.collide = false;
 			var prevVx = ball.v.x;
 			var prevVy = ball.v.y;
 			for(i=0 , len=entities.length ; i<len ; i++){
-				var e = entities[i];
+				e = entities[i];
 
 				if(e != ball){
 					e.collide = false;
@@ -586,6 +604,8 @@ window.onload = function(){
 						}
 					}
 					if(e.collide){
+						e.colCpt = 20;
+
 						//collisonVector is the the normalized vector indicating how much we need to move the ball in order to remove collision
 						// => move out of collision
 						ball.x += collisionVector.x * collisionVector.l;
@@ -617,7 +637,7 @@ window.onload = function(){
 						var sin = Math.sin(Math.acos(cos));
 						if(sin<0) sin=-sin;
 
-						var bounciness = e.kind == BUMPER ? 2 : 0.2;
+						var bounciness = e.kind == BUMPER ? 1.5 : 0.2;
 
 						collisionVector.x *= cos * bounciness * vl;
 						collisionVector.y *= cos * bounciness * vl;
@@ -766,8 +786,8 @@ window.onload = function(){
 		var x = ball.x;
 		var y = ball.y;
 		//change origin to screen center
-		var ox = x-totalSize/2;
-		var oy = y-totalSize/2;
+		var ox = x-halfSize;
+		var oy = y-halfSize;
 
 		var absox = ox;
 		var absoy = oy;
@@ -792,15 +812,15 @@ window.onload = function(){
 				if(ox<0) x = -x;
 				if(oy<0) y = -y;
 				//convert back to world coordinates
-				x = totalSize/2 + x;
-				y = totalSize/2 + y;
+				x = halfSize + x;
+				y = halfSize + y;
 			}//else outside the circle, means close enough to the center, no snapping
 		}else{
 			//Snap to closest line
 			if(absox<absoy){
-				x=totalSize/2;
+				x=halfSize;
 			}else{
-				y=totalSize/2;
+				y=halfSize;
 			}
 		}
 		//make sure ball stays close to the center
@@ -820,7 +840,7 @@ window.onload = function(){
 		}
 
 	}
-	drawCircle(fxCtx,totalSize/2,totalSize/2,200,"red");
+	drawCircle(fxCtx,halfSize,halfSize,200,"red");
 
 	function render(){
 		clearCanvas(renderCtx);
@@ -857,29 +877,47 @@ window.onload = function(){
 			var x = e.x-cameraX;
 			var y = e.y-cameraY;
 			var fill, stroke, lineWidth;
-			if(e.shape == CIRCLE){
-				if(e==ball){
-					stroke = BALL_STROKE_COLOR;
-					fill = BALL_FILL_COLOR;
-					if(startCpt>0 && !started){
-						var shake = clamp(startCpt/startCptMax,0,1)*4 >>0;
-						x += shake*rand() >> 0;
-						y += shake*rand() >> 0;
-						if(shake==4){
-							stroke = "#f00";
-						}
+			if(e==ball){
+				if(startCpt>0 && !started){
+					var shake = clamp(startCpt/startCptMax,0,1)*4 >>0;
+					x += shake*rand() >> 0;
+					y += shake*rand() >> 0;
+					if(shake==4){
+						stroke = "#f00";
 					}
+				}
+
+				//draw camembert
+				var dx,dy;
+				var angle = Math.atan2(ball.v.y,ball.v.x);
+				ball.cpt = (++ball.cpt)%20;
+				var dAngle = ball.cpt;
+				if(dAngle>10) dAngle = 20-dAngle;
+				if(dAngle===0){
+					drawCircle(entityCtx,ball.x-cameraX,ball.y-cameraY,ballRadius,BALL_FILL_COLOR,BALL_STROKE_COLOR);
 				}else{
-					if(e.kind==BACKGROUND){
-						fill = 0;
-						stroke = 0;
-					}else{
-						lineWidth = 2;
-						stroke = WALL_COLOR;
-						fill = "#000";
-						if(e.collide){
-							stroke = COLLIDE_COLOR;
-						}
+					entityCtx.strokeStyle = BALL_STROKE_COLOR;
+					entityCtx.fillStyle = BALL_FILL_COLOR;
+					entityCtx.lineWidth = 2;
+					dAngle *= 0.3*PI/10;
+					entityCtx.beginPath();
+					entityCtx.arc(ball.x-cameraX,ball.y-cameraY,ball.r,angle+dAngle,angle-dAngle);
+					entityCtx.lineTo(ball.x-cameraX,ball.y-cameraY);
+					entityCtx.closePath();
+					entityCtx.fill();
+					entityCtx.stroke();
+				}
+			}else if(e.shape == CIRCLE){
+				if(e.kind==BACKGROUND){
+					fill = 0;
+					stroke = 0;
+				}else{
+					lineWidth = 2;
+					stroke = WALL_COLOR;
+					fill = "#000";
+					if(e.colCpt>0){
+						e.colCpt--;
+						stroke = COLLIDE_COLOR;
 					}
 				}
 				if(fill || stroke){
@@ -924,14 +962,15 @@ window.onload = function(){
 			//drawCircle(fxCtx, shot.x-shot.v.x-cameraX, shot.y-shot.v.y-cameraY, 2, SHOT_COLOR);
 		}
 
-
-		//Draw acceleration vector
+		/*
+		//Draw velocity vector
 		drawLine(entityCtx,
 			ball.x-cameraX,
 			ball.y-cameraY,
 			ball.x-cameraX + ball.v.x*10,
 			ball.y-cameraY + ball.v.y*10,
 			"#0f0",3);
+		*/
 
 		drawImage(renderCtx, bgCanvas, -cameraX, -cameraY);
 		drawImage(renderCtx, fxCanvas, 0, 0);
@@ -960,16 +999,35 @@ window.onload = function(){
 
 	function buildObjects(){
 
-		ball = addEntity( makeCircle(totalSize/2, totalSize-50, ballRadius, BALL));
-		//ball = addEntity( makeCircle(400, totalSize/2-80, ballRadius, BALL));
+		ball = addEntity( makeCircle(halfSize, totalSize-50, ballRadius, BALL));
+		ball.cpt = 0;
+		//ball = addEntity( makeCircle(400, halfSize-80, ballRadius, BALL));
 
-		//addMultipleAndMirror( makeLine(0,200,180,80,OBSTACLE));
 		addMultipleAndMirror( makeLine(0,220,150,100,OBSTACLE));
 
 
-		addMultiple( makeCircle(70,260,30,BUMPER));
-		addMultiple( makeCircle(600,400,30,BUMPER));
-		addMultiple( makeCircle(300,600,30,BUMPER));
+		//addMultipleAndMirror( makeCircle(70,260,30,BUMPER));
+		//Create moving obstacles
+		movingBumbers = [];
+		var n = 10;
+		for(var i=0 ; i<n ; i++){
+			var r = 20+rand()*30;
+			var dist = 80+r+(centerRadius-2*r-80)*i/n >>0;
+			var angle = rand()*2*PI;
+			var bumper = makeCircle(0,0,r,BUMPER); //position is computed in updatePhysics
+			movingBumbers.push(addEntity(bumper));
+			//move speed, in pixels per frame
+			var speed = 0.1+rand()*0.2 * (rand()>0.5 ? -1:1);
+			//da = angular speed in turns per frame.
+			// speed*2PI*dist = speed
+			bumper.da = speed/(dist*2*PI);
+			bumper.a = angle;
+			bumper.d = dist;
+			console.log(bumper.da);
+		}
+
+		//addMultiple( makeCircle(600,400,30,BUMPER));
+		//addMultiple( makeCircle(300,600,30,BUMPER));
 
 
 		//addMultipleAndMirror( makeLine(100,450,200,450,OBSTACLE));
@@ -980,7 +1038,7 @@ window.onload = function(){
 		var pad = pads[0];
 		var padLength = pyth(pad.x-pad.x2, pad.y-pad.y2);
 		var padSpreadAngle = -Math.acos( (pad.x2-pad.x)/padLength)*2; //angle between default position and max position
-		for(var i=0;i<pads.length;i++){
+		for(i=0;i<pads.length;i++){
 			pad = pads[i];
 			pad.l = padLength;
 			pad.ux = pad.x2-pad.x;
@@ -1253,7 +1311,7 @@ window.onload = function(){
 
 	function drawCircle(ctx,x,y,radius,fill,stroke,width){
 		ctx.beginPath();
-		ctx.arc(x, y, radius, 0, 2 * Math.PI, false);
+		ctx.arc(x, y, radius, 0, 2 * PI, false);
 		if(fill){
 			ctx.fillStyle = fill;
 			ctx.fill();
@@ -1263,15 +1321,17 @@ window.onload = function(){
 			ctx.strokeStyle = stroke;
 			ctx.stroke();
 		}
+		ctx.closePath();
 	}
 
 	function drawLine(ctx,x,y,x2,y2,color,width){
-		if(width) ctx.lineWidth = width;
-		if(color) ctx.strokeStyle = color;
+		ctx.strokeStyle = color;
+		ctx.lineWidth = width || 2;
 		ctx.beginPath();
 		ctx.moveTo(x,y);
 		ctx.lineTo(x2,y2);
 		ctx.stroke();
+		//ctx.closePath();
 	}
 
 	function clearCanvas(ctx){
