@@ -117,10 +117,7 @@ window.onload = function(){
 		function buildWall(x,y){
 			//draw
 			var m = 4; //margin
-			bgCtx.strokeStyle = WALL_COLOR;
-			bgCtx.fillStyle = VOID_COLOR;
-			bgCtx.lineWidth = 2;
-
+			style(bgCtx,VOID_COLOR,WALL_COLOR,2);
 			bgCtx.beginPath();
 			bgCtx.moveTo( x(-m), y(-m) );
 			bgCtx.lineTo( x(tableHeight+cornerRadius), y(-m) );
@@ -137,7 +134,7 @@ window.onload = function(){
 			addEntity( makeLine( x(0), y(tableHeight+cornerRadius), x(tableHeight), y(tableHeight+cornerRadius), BACKGROUND ) );
 			addEntity( makeLine( x(tableHeight+cornerRadius), y(0), x(tableHeight+cornerRadius), y(tableHeight), BACKGROUND ) );
 
-			bgCtx.fillStyle = PADDLE_COLOR;
+			style(bgCtx,PADDLE_COLOR);
 			var char_ = x==identity ? leftChar : rightChar;
 			bgCtx.fillText(toChar(char_),x(tableHeight+cornerRadius+130)-2,y(50)-3);
 			char_ = y==identity ? upChar : downChar;
@@ -148,6 +145,110 @@ window.onload = function(){
 		buildWall(identity,mirror);
 		buildWall(mirror,identity);
 		buildWall(mirror,mirror);
+
+
+		//Also build mob skins
+		var s = 40;
+		var s2 = s/2;
+		var r = 4;
+
+		tempCanvas.width = 300;
+		tempCanvas.height = 100;
+
+		// ICE
+		tempCtx.translate(4, 4);
+		style(tempCtx,"#aef","#5af",2);
+		tempCtx.beginPath();
+		tempCtx.moveTo(s2,0);
+		tempCtx.quadraticCurveTo(s,-3,s,s2);
+		tempCtx.quadraticCurveTo(s,s+1,s2,s-2);
+		tempCtx.quadraticCurveTo(2,s,0,s2);
+		tempCtx.quadraticCurveTo(-3,-1,s2,0);
+		tempCtx.fill();
+		tempCtx.stroke();
+		//White lines
+		drawLine(tempCtx,8,4,4,20,"#fff",2);
+		drawLine(tempCtx,16,2,8,26, 0,1);
+		drawLine(tempCtx,36,14,18,36, 0,1);
+		drawLine(tempCtx,38,18,26,36, 0,2);
+		//eyes
+		drawLine(tempCtx,s2-4,10,s2-4,18,"#58f",2);
+		drawLine(tempCtx,s2+4,10,s2+4,18);
+		//drawLine(tempCtx,s2-8,6,s2+8,6);
+
+		// FIRE
+		tempCtx.translate(s+8, 0);
+		style(tempCtx,"#fa0","#f00",2);
+		tempCtx.beginPath();
+		tempCtx.moveTo(s2,-4);
+		tempCtx.lineTo(s2+6,14);
+		tempCtx.lineTo(s-4,8);
+		tempCtx.quadraticCurveTo(s,s+3,s2,s-2);
+		tempCtx.quadraticCurveTo(2,s,4,8);
+		tempCtx.lineTo(s2-6,14);
+		tempCtx.lineTo(s2,-4);
+		tempCtx.fill();
+		tempCtx.stroke();
+		//eyes
+		drawLine(tempCtx,s2-3,26,s2-8,20);
+		drawLine(tempCtx,s2+3,26,s2+8,20);
+
+		//SAND
+		tempCtx.translate(s+8, 0);
+		style(tempCtx,"#fd7","#d72",2);
+		tempCtx.beginPath();
+		tempCtx.moveTo(s2,0);
+		tempCtx.quadraticCurveTo(s,10,s-8,s-8);
+		tempCtx.quadraticCurveTo(s,s+1,s2+2,s-6);
+		tempCtx.quadraticCurveTo(14,s-12,2,s-4);
+		tempCtx.quadraticCurveTo(-2,s-10,4,s2);
+		tempCtx.quadraticCurveTo(0,0,s2,0);
+		tempCtx.fill();
+		tempCtx.stroke();
+		//Dots
+		drawCircle(tempCtx,10,7,1,"#d72");
+		drawCircle(tempCtx,24,9,1,"#d72");
+		drawCircle(tempCtx,7,20,1,"#d72");
+		drawCircle(tempCtx,20,14,1,"#d72");
+		drawCircle(tempCtx,8,30,1,"#d72");
+		drawCircle(tempCtx,28,32,1,"#d72");
+		//eyes
+		tempCtx.scale(1, 3/2);
+		drawCircle(tempCtx,13,14,4,"#111","#d72",1);
+		tempCtx.scale(1, 2/3);
+		tempCtx.stroke();
+		tempCtx.scale(1, 3/2);
+		drawCircle(tempCtx,26,14,4,"#111","#d72",1);
+		tempCtx.scale(1, 2/3);
+		tempCtx.stroke();
+
+		//GLASS
+		tempCtx.translate(s+8, 0);
+
+		tempCtx.lineCap = "round";
+		//Support
+		style(tempCtx,0,"red",4);
+		tempCtx.beginPath();
+		tempCtx.arc(s2, s2-2, s2, 0.6, 2.54);
+		tempCtx.stroke();
+		tempCtx.beginPath();
+		tempCtx.arc(s2, s2-10, s2+5, 1, 2.14);
+		tempCtx.stroke();
+		//sphere
+		drawCircle(tempCtx,s2,s2,s2-4,"rgba(255,255,255,0.1)","#fff",2);
+		//Reflection
+		style(0,0,1);
+		tempCtx.beginPath();
+		tempCtx.arc(s2, s2, s2-8, 3.2, 4.4);
+		tempCtx.stroke();
+		//eyes
+		//drawLine(tempCtx,s2-4,18,s2+6,18,"#fff",2);
+		drawCircle(tempCtx,s2-4,s2+4,4,0,"#fff",2);
+		drawCircle(tempCtx,s2+4,s2+4,4,0,"#fff",2);
+		//drawLine(tempCtx,s2-2,18,s2-2,21);
+		//drawLine(tempCtx,s2+3,18,s2+3,21);
+
+		drawImage(bgCtx,tempCanvas,halfSize,1.5*halfSize);
 	}
 
 
@@ -896,9 +997,7 @@ window.onload = function(){
 				if(dAngle===0){
 					drawCircle(entityCtx,ball.x-cameraX,ball.y-cameraY,ballRadius,BALL_FILL_COLOR,BALL_STROKE_COLOR);
 				}else{
-					entityCtx.strokeStyle = BALL_STROKE_COLOR;
-					entityCtx.fillStyle = BALL_FILL_COLOR;
-					entityCtx.lineWidth = 2;
+					style(entityCtx,BALL_FILL_COLOR,BALL_STROKE_COLOR,2);
 					dAngle *= 0.3*PI/10;
 					entityCtx.beginPath();
 					entityCtx.arc(ball.x-cameraX,ball.y-cameraY,ball.r,angle+dAngle,angle-dAngle);
@@ -1291,14 +1390,19 @@ window.onload = function(){
 		return canvas.getContext("2d");
 	}
 
+	function style(ctx, fill,stroke,lineWidth){
+		if(fill!==0) ctx.fillStyle = fill;
+		if(stroke!==0) ctx.strokeStyle = stroke;
+		if(lineWidth!==0) ctx.lineWidth = lineWidth;
+	}
+
 	// c: color string or canvas/image
 	function fillRect(ctx,x,y,w,h,c){
 		if(c){
 			if(c.width){
-				ctx.fillStyle = ctx.createPattern(c, 'repeat');
-			}else{
-				ctx.fillStyle = c;
+				c = ctx.createPattern(c, 'repeat');
 			}
+			style(ctx,c);
 		}
 		ctx.fillRect(x,y,w,h);
 	}
@@ -1310,23 +1414,20 @@ window.onload = function(){
 	}
 
 	function drawCircle(ctx,x,y,radius,fill,stroke,width){
+		style(ctx,fill,stroke,width||2);
 		ctx.beginPath();
 		ctx.arc(x, y, radius, 0, 2 * PI, false);
 		if(fill){
-			ctx.fillStyle = fill;
 			ctx.fill();
 		}
 		if(stroke){
-			ctx.lineWidth = width || 2;
-			ctx.strokeStyle = stroke;
 			ctx.stroke();
 		}
 		ctx.closePath();
 	}
 
 	function drawLine(ctx,x,y,x2,y2,color,width){
-		ctx.strokeStyle = color;
-		ctx.lineWidth = width || 2;
+		style(ctx,0,color,width||2);
 		ctx.beginPath();
 		ctx.moveTo(x,y);
 		ctx.lineTo(x2,y2);
