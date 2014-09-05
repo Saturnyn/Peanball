@@ -22,9 +22,13 @@ window.onload = function(){
 	//var RIGHT = 1;
 	//var TOP = 2;
 	//var LEFT = 3;
+	var WATER = 0;
+	var FIRE = 1;
+	var EARTH = 2;
+	var AIR = 3;
 
 	var tableWidth = 700;
-	var tableHeight = 200;
+	var tableHeight = 220;
 	var cornerRadius = 200;
 	var centerRadius = cornerRadius + tableWidth/2;
 	centerRadius = pyth(centerRadius,centerRadius) - cornerRadius >> 0;
@@ -47,6 +51,9 @@ window.onload = function(){
 
 	var entityCanvas = makeCanvas(screenWidth,screenHeight);
 	var entityCtx = getContext(entityCanvas);
+
+	var monsterCanvas = makeCanvas(400,100);
+	var monsterCtx = getContext(monsterCanvas);
 
 	var cameraX;
 	var cameraY;
@@ -87,6 +94,9 @@ window.onload = function(){
 
 	var SHOT_COLOR = "#fa0";
 
+	var spriteMargin = 4;
+	var spriteSize = 40;
+
 	function buildBackground(){
 		var tempCanvas = makeCanvas(tileSize, tileSize);
 		var tempCtx = getContext(tempCanvas);
@@ -96,6 +106,72 @@ window.onload = function(){
 		fillRect(tempCtx,0,0,tileSize-1,tileSize-1,TILE_LINE_COLOR_2); //"#eee");
 		fillRect(tempCtx,0,0,tileSize-2,tileSize-2,TILE_FILL_COLOR); //"#f8f8f8");
 		fillRect(bgCtx,0,0,totalSize,totalSize, tempCanvas);
+
+		for(var i=0 ; i<4 ; i++){
+			var x=0, y=0, w = totalSize, h=totalSize, c,c2;
+			fillRect(tempCtx,0,0,tempCanvas.width,tempCanvas.height,TILE_FILL_COLOR); //"#f8f8f8");
+			//tempCtx.globalAlpha = 0.4;
+			tempCtx.beginPath();
+
+			if(i===0){
+				y = totalSize-tableHeight;
+				h = tableHeight;
+				//c = "#358";
+
+				style(tempCtx,0,"#358",2);
+				tempCtx.moveTo(0,tileSize/2);
+				tempCtx.quadraticCurveTo(tileSize/4,tileSize/4,tileSize/2,tileSize/2);
+				tempCtx.quadraticCurveTo(3*tileSize/4,3*tileSize/4,tileSize,tileSize/2);
+				tempCtx.stroke();
+			}else if(i==1){
+
+				x = totalSize-tableHeight-2;
+				w = tableHeight;
+				//c = "#fa0";
+				/*
+				style(tempCtx,0,"#853");
+				tempCtx.arc(10,10,8,-0.2,3.2);
+				tempCtx.stroke();
+				tempCtx.beginPath();
+				tempCtx.arc();
+				tempCtx.stroke();
+				*/
+
+				/*
+				 //fire kanji
+				tempCtx.moveTo(3,3*tileSize/4);
+				tempCtx.quadraticCurveTo(tileSize/2,tileSize/2,tileSize/2,3);
+				tempCtx.moveTo(tileSize/2,tileSize/2);
+				tempCtx.quadraticCurveTo(14,16,tileSize-5,3*tileSize/4);
+				tempCtx.stroke();
+				drawLine(tempCtx,7,7,5,5,0,1);
+				drawLine(tempCtx,11,9,14,6,0,1);
+				*/
+			}else if(i==2){
+				h = tableHeight;
+				c = "#421";
+
+				
+			}else{
+				w = tableHeight;
+				c = "#def";
+			}
+
+			//fillRect(tempCtx,0,0,tileSize,tileSize,c); //"#fff");
+			//fillRect(tempCtx,0,0,tileSize-1,tileSize-1,c2); //"#eee");
+			//fillRect(tempCtx,0,0,tileSize-2,tileSize-2,TILE_FILL_COLOR); //"#f8f8f8");
+			fillRect(bgCtx,x,y,w,h, tempCanvas);
+			tempCtx.globalAlpha = 1;
+		}
+		/*
+		//element overlay
+		fillRect(bgCtx,0,totalSize-tableHeight-2,totalSize,tableHeight,"rgba(120,180,255,0.2)");//WATER
+		fillRect(bgCtx,totalSize-tableHeight-2,0,tableHeight,totalSize,"rgba(255,80,0,0.2)");//FIRE
+		fillRect(bgCtx,0,0,totalSize,tableHeight,"rgba(111, 78, 55,0.4)");//EARTH
+		fillRect(bgCtx,0,0,tableHeight,totalSize,"rgba(255,255,255,0.1)");//EARTH
+		//fillRect(bgCtx,totalSize-tableHeight-2,0,tableHeight,totalSize,"rgba(152,152,152,0.2)");//FIRE
+		*/
+
 
 		//diagonal lines
 		drawLine(bgCtx,0,0,totalSize,totalSize,TILE_LINE_COLOR_3);
@@ -115,6 +191,8 @@ window.onload = function(){
 		bgCtx.textBaseline="middle";
 
 		function buildWall(x,y){
+
+
 			//draw
 			var m = 4; //margin
 			style(bgCtx,VOID_COLOR,WALL_COLOR,2);
@@ -123,7 +201,7 @@ window.onload = function(){
 			bgCtx.lineTo( x(tableHeight+cornerRadius), y(-m) );
 			bgCtx.lineTo( x(tableHeight+cornerRadius), y(tableHeight) );
 			bgCtx.arcTo ( x(tableHeight+cornerRadius), y(tableHeight+cornerRadius),
-						  x(tableHeight), y(tableHeight+cornerRadius), cornerRadius);
+				x(tableHeight), y(tableHeight+cornerRadius), cornerRadius);
 			bgCtx.lineTo( x(-m), y(tableHeight+cornerRadius) );
 			bgCtx.closePath();
 			bgCtx.fill();
@@ -148,107 +226,105 @@ window.onload = function(){
 
 
 		//Also build mob skins
-		var s = 40;
+		var s = spriteSize;
 		var s2 = s/2;
-		var r = 4;
+		var r = spriteMargin;
 
-		tempCanvas.width = 300;
-		tempCanvas.height = 100;
 
 		// ICE
-		tempCtx.translate(4, 4);
-		style(tempCtx,"#aef","#5af",2);
-		tempCtx.beginPath();
-		tempCtx.moveTo(s2,0);
-		tempCtx.quadraticCurveTo(s,-3,s,s2);
-		tempCtx.quadraticCurveTo(s,s+1,s2,s-2);
-		tempCtx.quadraticCurveTo(2,s,0,s2);
-		tempCtx.quadraticCurveTo(-3,-1,s2,0);
-		tempCtx.fill();
-		tempCtx.stroke();
+		monsterCtx.translate(4, 4);
+		style(monsterCtx,"#aef","#5af",2);
+		monsterCtx.beginPath();
+		monsterCtx.moveTo(s2,0);
+		monsterCtx.quadraticCurveTo(s,-3,s,s2);
+		monsterCtx.quadraticCurveTo(s,s+1,s2,s-2);
+		monsterCtx.quadraticCurveTo(2,s,0,s2);
+		monsterCtx.quadraticCurveTo(-3,-1,s2,0);
+		monsterCtx.fill();
+		monsterCtx.stroke();
 		//White lines
-		drawLine(tempCtx,8,4,4,20,"#fff",2);
-		drawLine(tempCtx,16,2,8,26, 0,1);
-		drawLine(tempCtx,36,14,18,36, 0,1);
-		drawLine(tempCtx,38,18,26,36, 0,2);
+		drawLine(monsterCtx,8,4,4,20,"#fff",2);
+		drawLine(monsterCtx,16,2,8,26, 0,1);
+		drawLine(monsterCtx,36,14,18,36, 0,1);
+		drawLine(monsterCtx,38,18,26,36, 0,2);
 		//eyes
-		drawLine(tempCtx,s2-4,10,s2-4,18,"#58f",2);
-		drawLine(tempCtx,s2+4,10,s2+4,18);
-		//drawLine(tempCtx,s2-8,6,s2+8,6);
+		drawLine(monsterCtx,s2-4,10,s2-4,18,"#58f",2);
+		drawLine(monsterCtx,s2+4,10,s2+4,18);
+		//drawLine(monsterCtx,s2-8,6,s2+8,6);
 
 		// FIRE
-		tempCtx.translate(s+8, 0);
-		style(tempCtx,"#fa0","#f00",2);
-		tempCtx.beginPath();
-		tempCtx.moveTo(s2,-4);
-		tempCtx.lineTo(s2+6,14);
-		tempCtx.lineTo(s-4,8);
-		tempCtx.quadraticCurveTo(s,s+3,s2,s-2);
-		tempCtx.quadraticCurveTo(2,s,4,8);
-		tempCtx.lineTo(s2-6,14);
-		tempCtx.lineTo(s2,-4);
-		tempCtx.fill();
-		tempCtx.stroke();
+		monsterCtx.translate(s+8, 0);
+		style(monsterCtx,"#fa0","#f00",2);
+		monsterCtx.beginPath();
+		monsterCtx.moveTo(s2,-4);
+		monsterCtx.lineTo(s2+6,14);
+		monsterCtx.lineTo(s-4,8);
+		monsterCtx.quadraticCurveTo(s,s+3,s2,s-2);
+		monsterCtx.quadraticCurveTo(2,s,4,8);
+		monsterCtx.lineTo(s2-6,14);
+		monsterCtx.lineTo(s2,-4);
+		monsterCtx.fill();
+		monsterCtx.stroke();
 		//eyes
-		drawLine(tempCtx,s2-3,26,s2-8,20);
-		drawLine(tempCtx,s2+3,26,s2+8,20);
+		drawLine(monsterCtx,s2-3,26,s2-8,20);
+		drawLine(monsterCtx,s2+3,26,s2+8,20);
 
 		//SAND
-		tempCtx.translate(s+8, 0);
-		style(tempCtx,"#fd7","#d72",2);
-		tempCtx.beginPath();
-		tempCtx.moveTo(s2,0);
-		tempCtx.quadraticCurveTo(s,10,s-8,s-8);
-		tempCtx.quadraticCurveTo(s,s+1,s2+2,s-6);
-		tempCtx.quadraticCurveTo(14,s-12,2,s-4);
-		tempCtx.quadraticCurveTo(-2,s-10,4,s2);
-		tempCtx.quadraticCurveTo(0,0,s2,0);
-		tempCtx.fill();
-		tempCtx.stroke();
+		monsterCtx.translate(s+8, 0);
+		style(monsterCtx,"#fd7","#d72",2);
+		monsterCtx.beginPath();
+		monsterCtx.moveTo(s2,0);
+		monsterCtx.quadraticCurveTo(s,10,s-8,s-8);
+		monsterCtx.quadraticCurveTo(s,s+1,s2+2,s-6);
+		monsterCtx.quadraticCurveTo(14,s-12,2,s-4);
+		monsterCtx.quadraticCurveTo(-2,s-10,4,s2);
+		monsterCtx.quadraticCurveTo(0,0,s2,0);
+		monsterCtx.fill();
+		monsterCtx.stroke();
 		//Dots
-		drawCircle(tempCtx,10,7,1,"#d72");
-		drawCircle(tempCtx,24,9,1,"#d72");
-		drawCircle(tempCtx,7,20,1,"#d72");
-		drawCircle(tempCtx,20,14,1,"#d72");
-		drawCircle(tempCtx,8,30,1,"#d72");
-		drawCircle(tempCtx,28,32,1,"#d72");
+		drawCircle(monsterCtx,10,7,1,"#d72");
+		drawCircle(monsterCtx,24,9,1,"#d72");
+		drawCircle(monsterCtx,7,20,1,"#d72");
+		drawCircle(monsterCtx,20,14,1,"#d72");
+		drawCircle(monsterCtx,8,30,1,"#d72");
+		drawCircle(monsterCtx,28,32,1,"#d72");
 		//eyes
-		tempCtx.scale(1, 3/2);
-		drawCircle(tempCtx,13,14,4,"#111","#d72",1);
-		tempCtx.scale(1, 2/3);
-		tempCtx.stroke();
-		tempCtx.scale(1, 3/2);
-		drawCircle(tempCtx,26,14,4,"#111","#d72",1);
-		tempCtx.scale(1, 2/3);
-		tempCtx.stroke();
+		monsterCtx.scale(1, 3/2);
+		drawCircle(monsterCtx,13,14,4,"#111","#d72",1);
+		monsterCtx.scale(1, 2/3);
+		monsterCtx.stroke();
+		monsterCtx.scale(1, 3/2);
+		drawCircle(monsterCtx,26,14,4,"#111","#d72",1);
+		monsterCtx.scale(1, 2/3);
+		monsterCtx.stroke();
 
 		//GLASS
-		tempCtx.translate(s+8, 0);
+		monsterCtx.translate(s+8, 0);
 
-		tempCtx.lineCap = "round";
+		monsterCtx.lineCap = "round";
 		//Support
-		style(tempCtx,0,"red",4);
-		tempCtx.beginPath();
-		tempCtx.arc(s2, s2-2, s2, 0.6, 2.54);
-		tempCtx.stroke();
-		tempCtx.beginPath();
-		tempCtx.arc(s2, s2-10, s2+5, 1, 2.14);
-		tempCtx.stroke();
+		style(monsterCtx,0,"red",4);
+		monsterCtx.beginPath();
+		monsterCtx.arc(s2, s2-2, s2, 0.6, 2.54);
+		monsterCtx.stroke();
+		monsterCtx.beginPath();
+		monsterCtx.arc(s2, s2-10, s2+5, 1, 2.14);
+		monsterCtx.stroke();
 		//sphere
-		drawCircle(tempCtx,s2,s2,s2-4,"rgba(255,255,255,0.1)","#fff",2);
+		drawCircle(monsterCtx,s2,s2,s2-4,"rgba(255,255,255,0.1)","#fff",2);
 		//Reflection
 		style(0,0,1);
-		tempCtx.beginPath();
-		tempCtx.arc(s2, s2, s2-8, 3.2, 4.4);
-		tempCtx.stroke();
+		monsterCtx.beginPath();
+		monsterCtx.arc(s2, s2, s2-8, 3.2, 4.4);
+		monsterCtx.stroke();
 		//eyes
-		//drawLine(tempCtx,s2-4,18,s2+6,18,"#fff",2);
-		drawCircle(tempCtx,s2-4,s2+4,4,0,"#fff",2);
-		drawCircle(tempCtx,s2+4,s2+4,4,0,"#fff",2);
-		//drawLine(tempCtx,s2-2,18,s2-2,21);
-		//drawLine(tempCtx,s2+3,18,s2+3,21);
+		//drawLine(monsterCtx,s2-4,18,s2+6,18,"#fff",2);
+		drawCircle(monsterCtx,s2-4,s2+4,4,0,"#fff",2);
+		drawCircle(monsterCtx,s2+4,s2+4,4,0,"#fff",2);
+		//drawLine(monsterCtx,s2-2,18,s2-2,21);
+		//drawLine(monsterCtx,s2+3,18,s2+3,21);
 
-		drawImage(bgCtx,tempCanvas,halfSize,1.5*halfSize);
+		//drawImage(bgCtx,monsterCanvas,halfSize,1.5*halfSize);
 	}
 
 
@@ -265,11 +341,13 @@ window.onload = function(){
 		BUMPER = "bp",
 		OBSTACLE = "o",
 		PADDLE = "p",
-		SHOT = "s";
+		SHOT = "s",
+		MONSTER = "m";
 
 
 	var entities;
 	var shots;
+	var monsters;
 	var ball;
 	var pads;
 	var movingBumbers;
@@ -299,6 +377,8 @@ window.onload = function(){
 		started = false;
 		entities = [];
 		shots = [];
+		monsters = [];
+		monsters.n = 0;
 		shots.n = 0;
 		buildBackground();
 		buildObjects();
@@ -408,9 +488,9 @@ window.onload = function(){
 			normalize(tempVector);
 
 			/*
-			ball.a.x = tempVector.x*GRAVITY;
-			ball.a.y = tempVector.y*GRAVITY;
-			*/
+			 ball.a.x = tempVector.x*GRAVITY;
+			 ball.a.y = tempVector.y*GRAVITY;
+			 */
 
 			if(mouse.leftCpt%10===0){
 				var shot;
@@ -444,7 +524,7 @@ window.onload = function(){
 		//rotate moving bumbers
 		for(i=0,len=movingBumbers.length ; i<len ; i++){
 			e = movingBumbers[i];
-			e.a = (e.a+e.da*2*PI);
+			e.a = e.a+e.da;
 			//moving bumper
 			e.x = halfSize+Math.cos(e.a)* e.d;
 			e.y = halfSize+Math.sin(e.a)* e.d;
@@ -523,14 +603,27 @@ window.onload = function(){
 			ball.collide = false;
 			var prevVx = ball.v.x;
 			var prevVy = ball.v.y;
-			for(i=0 , len=entities.length ; i<len ; i++){
-				e = entities[i];
+			var eLen = entities.length;
+			len = eLen + monsters.n;
+			for(i=0 ; i<len ; i++){
+				if(i<eLen){
+					e = entities[i];
+				}else{
+					e = monsters[i-eLen];
+				}
 
 				if(e != ball){
 					e.collide = false;
 					var l;
 					var collisionVector = tempVector;
 					if(e.shape==CIRCLE){
+						if(e.kind == MONSTER){
+							//ball goes through fire
+							if(e.elt==FIRE || e.dead){
+								continue;
+							}
+						}
+
 						if(collideCircle(ball,e)){
 							e.collide = true;
 							//compute vector going from entity center to ball center
@@ -551,10 +644,10 @@ window.onload = function(){
 							e.collide = true;
 
 							/*
-							if(e.kind==PADDLE && e.moving){
-								console.log('collide moving pad');
-							}
-							*/
+							 if(e.kind==PADDLE && e.moving){
+							 console.log('collide moving pad');
+							 }
+							 */
 
 							//We need to check if ball passed through the line
 							// B is the ball center, E is the projection of B on the line entity
@@ -641,7 +734,7 @@ window.onload = function(){
 										var ny = -e._ux/e.l;
 										console.log("   NORMALE PAD",nx,ny,e);
 										if(e.mirror && (e.table===0 || e.table==3) || !e.mirror && (e.table==1 || e.table==2)){
-										//if(e.mirror && !reverse || !e.mirror && reverse){
+											//if(e.mirror && !reverse || !e.mirror && reverse){
 											nx*=-1;
 											ny*=-1;
 										}
@@ -670,16 +763,16 @@ window.onload = function(){
 										var boostCpt = (boostRatio*20) >> 0;
 										var speed = maxSpeed*boostRatio; //reach 60% of max speed
 										/*
-										if(!ball.boostCpt){
-											//initial boost is proportionnal to ball velocity
-											var ballSpeed = pyth(ball.v.x,ball.v.y);
-											ballSpeed/=freeFallSpeed;
-											if(ballSpeed>1) ballSpeed = 1; //just in case
-											console.log("INTIAL BOOST",ballSpeed);
-											speed += 0.4*ballSpeed;
+										 if(!ball.boostCpt){
+										 //initial boost is proportionnal to ball velocity
+										 var ballSpeed = pyth(ball.v.x,ball.v.y);
+										 ballSpeed/=freeFallSpeed;
+										 if(ballSpeed>1) ballSpeed = 1; //just in case
+										 console.log("INTIAL BOOST",ballSpeed);
+										 speed += 0.4*ballSpeed;
 
-										}
-										*/
+										 }
+										 */
 										var boostX = collisionVector.x*speed;
 										var boostY = collisionVector.y*speed;
 
@@ -738,7 +831,7 @@ window.onload = function(){
 						var sin = Math.sin(Math.acos(cos));
 						if(sin<0) sin=-sin;
 
-						var bounciness = e.kind == BUMPER ? 1.5 : 0.2;
+						var bounciness = e.kind == BUMPER ||("elt" in e && e.elt!=EARTH) ? 1.5 : 0.2;
 
 						collisionVector.x *= cos * bounciness * vl;
 						collisionVector.y *= cos * bounciness * vl;
@@ -792,91 +885,9 @@ window.onload = function(){
 		}
 	}
 
-	/*
-	//Makes sure ball stays in left table, params are used to make symmetrical checks in other tables
-	function keepBallInTable(xTransform,reverse){
-		var x = ball.x;
-		var y = ball.y;
-		var swap;
-		if(reverse){
-			swap = x;
-			x = y;
-			y = swap;
-		}
-		x = xTransform(x);
-
-		//x,y as in left table
-		if(x<tableHeight && x>0){
-			if(y-ball.r<tableHeight+cornerRadius){
-				y = tableHeight+cornerRadius+ball.r;
-			}else if(y+ball.r>tableHeight+cornerRadius+tableWidth){
-				y = tableHeight+cornerRadius+tableWidth-ball.r;
-			}else{
-				return;
-			}
-			console.log("keep ball in table");
-			x = xTransform(x);
-			if(reverse){
-				swap = x;
-				x = y;
-				y = swap;
-			}
-			ball.x = x;
-			ball.y = y;
-		}
-	}
-	*/
-
 	function updateCamera(){
 		prevCameraX = cameraX;
 		prevCameraY = cameraY;
-		/*
-		var x = ball.x - screenWidth/2;
-		var y = ball.y - screenHeight/2;
-		var dx = x-cameraX;
-		var dy = y-cameraY;
-		var d = pyth(dx,dy);
-		var maxCamSpeed = 2;
-		if(d>maxCamSpeed)
-		dx = dx*maxCamSpeed/d;
-		dy = dy*maxCamSpeed/d;
-
-		x+=dx;
-		y+=dy;
-		x = clamp(x, 0, totalSize-screenWidth);
-		y = clamp(y, 0, totalSize-screenHeight);
-		cameraX = x;
-		cameraY = y;
-		*/
-		/*
-		if(false && started){
-			//smooth transition to ideal position
-			cameraX += (x-cameraX)*0.1;
-			cameraY += (y-cameraY)*0.1;
-		}else{
-			cameraX = x;
-			cameraY = y;
-		}
-		*/
-
-
-
-		/*
-		var x = ball.x - screenWidth/2;
-		var y = ball.y - screenHeight/2;
-		x = clamp(x, 0, totalSize-screenWidth);
-		y = clamp(y, 0, totalSize-screenHeight);
-		if(false){
-			//smooth transition to ideal position
-			cameraX += (x-cameraX)*0.1;
-			cameraY += (y-cameraY)*0.1;
-		}else{
-			cameraX = x;
-			cameraY = y;
-		}
-		*/
-
-
 
 		//Objectives:
 		// - limit camera movement as much as possible
@@ -939,9 +950,7 @@ window.onload = function(){
 			cameraX = x;
 			cameraY = y;
 		}
-
 	}
-	drawCircle(fxCtx,halfSize,halfSize,200,"red");
 
 	function render(){
 		clearCanvas(renderCtx);
@@ -1042,11 +1051,43 @@ window.onload = function(){
 				/*
 				 //drawCircle(renderCtx,e.x-cameraX, e.y-cameraY,4,"red");
 				 if(e.kind==PADDLE){
-					drawLine(renderCtx, e.x-cameraX, e.y-cameraY, e.prevX2-cameraX, e.prevY2-cameraY,"yellow",2);
-				}
-				*/
+				 drawLine(renderCtx, e.x-cameraX, e.y-cameraY, e.prevX2-cameraX, e.prevY2-cameraY,"yellow",2);
+				 }
+				 */
 			}
 		}
+
+		for(i=0, len=monsters.n ; i<len ; i++){
+			var a = 1;
+			var m = monsters[i];
+			var size = (spriteSize+spriteMargin*2);
+			//drawCircle(entityCtx, m.x-cameraX, m.y-cameraY, m.r,DEBUG_COLOR);
+			if(m.dead){
+				m.cpt--;
+				if(m.cpt===0){
+					//remove entity (swap with the end of the list)
+					a = monsters[monsters.n-1];
+					monsters[i] = a;
+					monsters[monsters.n-1] = m;
+					monsters.n--;
+					i--;
+					continue;
+				}else{
+					a = m.cpt/50;
+				}
+			}else{
+				if(m.cpt<50){
+					m.cpt++;
+					a = m.cpt/50;
+				}
+			}
+			entityCtx.globalAlpha = a;
+			drawImage(entityCtx,monsterCanvas,
+				m.elt*size,0,size,size,
+				m.x-size/2 - cameraX,m.y-size/2 - cameraY,size,size
+			);
+		}
+		entityCtx.globalAlpha = 1;
 
 
 		var shot;
@@ -1062,19 +1103,40 @@ window.onload = function(){
 		}
 
 		/*
-		//Draw velocity vector
-		drawLine(entityCtx,
-			ball.x-cameraX,
-			ball.y-cameraY,
-			ball.x-cameraX + ball.v.x*10,
-			ball.y-cameraY + ball.v.y*10,
-			"#0f0",3);
-		*/
+		 //Draw velocity vector
+		 drawLine(entityCtx,
+		 ball.x-cameraX,
+		 ball.y-cameraY,
+		 ball.x-cameraX + ball.v.x*10,
+		 ball.y-cameraY + ball.v.y*10,
+		 "#0f0",3);
+		 */
 
 		drawImage(renderCtx, bgCanvas, -cameraX, -cameraY);
 		drawImage(renderCtx, fxCanvas, 0, 0);
 		drawImage(renderCtx, entityCanvas, 0, 0);
+	}
 
+	function updateGameWorld(){
+		var nMonsters = 6;
+		while(monsters.n<nMonsters){
+			var monster;
+			if(monsters.length==monsters.n){
+				monster = makeEntity(CIRCLE,MONSTER);
+				monsters.push(monster);
+				monster.elt = monsters.n%4;
+				monster.r = spriteSize/2 - 4;
+			}else{
+				monster = monsters[monsters.n];
+			}
+			monsters.n++;
+
+			var bumper = movingBumbers[monsters.n%movingBumbers.length];
+			monster.x = bumper.x;
+			monster.y = bumper.y;
+			monster.cpt = 0;
+			monster.dead = 0;
+		}
 	}
 
 	function tic(){
@@ -1082,7 +1144,7 @@ window.onload = function(){
 		updatePhysics();
 		updateCamera();
 		render();
-
+		updateGameWorld();
 
 		window.requestAnimationFrame(tic);
 		//setTimeout(tic,1000);
@@ -1116,10 +1178,9 @@ window.onload = function(){
 			var bumper = makeCircle(0,0,r,BUMPER); //position is computed in updatePhysics
 			movingBumbers.push(addEntity(bumper));
 			//move speed, in pixels per frame
-			var speed = 0.1+rand()*0.2 * (rand()>0.5 ? -1:1);
-			//da = angular speed in turns per frame.
-			// speed*2PI*dist = speed
-			bumper.da = speed/(dist*2*PI);
+			var speed = 0.2+rand()*0.2 * (rand()>0.5 ? -1:1);
+			//da = angular speed in radian per frame.
+			bumper.da = speed/dist;
 			bumper.a = angle;
 			bumper.d = dist;
 			console.log(bumper.da);
@@ -1182,57 +1243,57 @@ window.onload = function(){
 	}
 
 	/*
-	function addShape(data, kind){
-		var items = [];
-		var circle, line;
-		for(var i= 0;i<data.pts.length;i++){
-			var p = data.pts[i];
-			circle = makeEntity(CIRCLE,"bump", p.x, p.y);
-			circle.r = data.rs[i];
-			items.push(circle);
+	 function addShape(data, kind){
+	 var items = [];
+	 var circle, line;
+	 for(var i= 0;i<data.pts.length;i++){
+	 var p = data.pts[i];
+	 circle = makeEntity(CIRCLE,"bump", p.x, p.y);
+	 circle.r = data.rs[i];
+	 items.push(circle);
 
-			if(i>0){
-				var p2 = data.pts[i-1];
-				var r2 = data.rs[i-1];
-				//compute perpendicular vector
-				var dx = p.x-p2.x;
-				var dy = p.y-p2.y;
-				var n = pyth(dx,dy);
-				var dx2 = -dy/n;
-				var dy2 = dx/n;
+	 if(i>0){
+	 var p2 = data.pts[i-1];
+	 var r2 = data.rs[i-1];
+	 //compute perpendicular vector
+	 var dx = p.x-p2.x;
+	 var dy = p.y-p2.y;
+	 var n = pyth(dx,dy);
+	 var dx2 = -dy/n;
+	 var dy2 = dx/n;
 
-				j=0;
-				while(j<2){
-					if(j==1){
-						dx2 = -dx2;
-						dy2 = -dy2;
-					}
-					line = makeEntity(LINE,"bump");
-					line.r = 2;
-					line.x = p.x + dx2*circle.r >> 0;
-					line.y = p.y + dy2*circle.r >> 0;
-					line.x2 = p2.x + dx2*r2 >> 0;
-					line.y2 = p2.y + dy2*r2 >> 0;
-					items.unshift(line);
-					j++;
-				}
+	 j=0;
+	 while(j<2){
+	 if(j==1){
+	 dx2 = -dx2;
+	 dy2 = -dy2;
+	 }
+	 line = makeEntity(LINE,"bump");
+	 line.r = 2;
+	 line.x = p.x + dx2*circle.r >> 0;
+	 line.y = p.y + dy2*circle.r >> 0;
+	 line.x2 = p2.x + dx2*r2 >> 0;
+	 line.y2 = p2.y + dy2*r2 >> 0;
+	 items.unshift(line);
+	 j++;
+	 }
 
-			}
+	 }
 
-		}
-		for(i=0 ; i<items.length ; i++){
-			var entity = items[i];
-			for(var j=0 ; j<4 ; j++){
-				var clone = cloneObject(entity);
-				convert(clone,"x","y",j);
-				if(clone.shape==LINE){
-					convert(clone,"x2","y2",j);
-				}
-				addEntity(clone);
-			}
-		}
-	}
-	*/
+	 }
+	 for(i=0 ; i<items.length ; i++){
+	 var entity = items[i];
+	 for(var j=0 ; j<4 ; j++){
+	 var clone = cloneObject(entity);
+	 convert(clone,"x","y",j);
+	 if(clone.shape==LINE){
+	 convert(clone,"x2","y2",j);
+	 }
+	 addEntity(clone);
+	 }
+	 }
+	 }
+	 */
 
 	function addMultiple(entity){
 		for(var j=0 ; j<4 ; j++){
@@ -1515,8 +1576,7 @@ window.onload = function(){
 	document.oncontextmenu = function(e){
 		return false;
 	};
-};
-;(function() {
+};;(function() {
     var lastTime = 0;
     var vendors = ['webkit', 'moz'];
     for(var x = 0; x < vendors.length && !window.requestAnimationFrame; ++x) {
