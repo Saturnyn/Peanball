@@ -86,13 +86,25 @@ window.onload = function(){
 	var WALL_COLOR = "#08e";//"#ddd";
 	var VOID_COLOR = "#000";
 	var COLLIDE_COLOR = "#0d0";
-	var PADDLE_COLOR = "#dd0";
+	//var PADDLE_COLOR = "#dd0";
 
 	var BALL_STROKE_COLOR = "#000";
 	var BALL_FILL_COLOR = "#fff";
 	var DEBUG_COLOR = "#0f0";
 
 	var SHOT_COLOR = "#fa0";
+
+
+	var MONSTER_COLORS = [
+		//WATER / ICE
+		["#aef","#5af"],
+		//FIRE
+		["#fa0","#f00"],
+		//EARTH / SAND
+		["#d72","#d72"],
+		//AIR / GLASS
+		["#fff","#fff"]
+	];
 
 	var spriteMargin = 4;
 	var spriteSize = 40;
@@ -107,6 +119,7 @@ window.onload = function(){
 		fillRect(tempCtx,0,0,tileSize-2,tileSize-2,TILE_FILL_COLOR); //"#f8f8f8");
 		fillRect(bgCtx,0,0,totalSize,totalSize, tempCanvas);
 
+		/*
 		for(var i=0 ; i<4 ; i++){
 			var x=0, y=0, w = totalSize, h=totalSize, c,c2;
 			fillRect(tempCtx,0,0,tempCanvas.width,tempCanvas.height,TILE_FILL_COLOR); //"#f8f8f8");
@@ -128,30 +141,11 @@ window.onload = function(){
 				x = totalSize-tableHeight-2;
 				w = tableHeight;
 				//c = "#fa0";
-				/*
-				style(tempCtx,0,"#853");
-				tempCtx.arc(10,10,8,-0.2,3.2);
-				tempCtx.stroke();
-				tempCtx.beginPath();
-				tempCtx.arc();
-				tempCtx.stroke();
-				*/
-
-				/*
-				 //fire kanji
-				tempCtx.moveTo(3,3*tileSize/4);
-				tempCtx.quadraticCurveTo(tileSize/2,tileSize/2,tileSize/2,3);
-				tempCtx.moveTo(tileSize/2,tileSize/2);
-				tempCtx.quadraticCurveTo(14,16,tileSize-5,3*tileSize/4);
-				tempCtx.stroke();
-				drawLine(tempCtx,7,7,5,5,0,1);
-				drawLine(tempCtx,11,9,14,6,0,1);
-				*/
 			}else if(i==2){
 				h = tableHeight;
 				c = "#421";
 
-				
+
 			}else{
 				w = tableHeight;
 				c = "#def";
@@ -163,14 +157,19 @@ window.onload = function(){
 			fillRect(bgCtx,x,y,w,h, tempCanvas);
 			tempCtx.globalAlpha = 1;
 		}
-		/*
-		//element overlay
-		fillRect(bgCtx,0,totalSize-tableHeight-2,totalSize,tableHeight,"rgba(120,180,255,0.2)");//WATER
-		fillRect(bgCtx,totalSize-tableHeight-2,0,tableHeight,totalSize,"rgba(255,80,0,0.2)");//FIRE
-		fillRect(bgCtx,0,0,totalSize,tableHeight,"rgba(111, 78, 55,0.4)");//EARTH
-		fillRect(bgCtx,0,0,tableHeight,totalSize,"rgba(255,255,255,0.1)");//EARTH
-		//fillRect(bgCtx,totalSize-tableHeight-2,0,tableHeight,totalSize,"rgba(152,152,152,0.2)");//FIRE
+
 		*/
+		//element overlay
+		bgCtx.globalAlpha = 0.1;
+		//bgCtx.globalCompositeOperation = "lighten";
+		fillRect(bgCtx,0,totalSize-tableHeight-2,totalSize,tableHeight,MONSTER_COLORS[WATER][1]);//WATER
+		fillRect(bgCtx,totalSize-tableHeight-2,0,tableHeight,totalSize,MONSTER_COLORS[FIRE][1]);//FIRE
+		fillRect(bgCtx,0,0,totalSize,tableHeight,MONSTER_COLORS[EARTH][1]);//EARTH
+		fillRect(bgCtx,0,0,tableHeight,totalSize,MONSTER_COLORS[AIR][1]);//AIR
+		//fillRect(bgCtx,totalSize-tableHeight-2,0,tableHeight,totalSize,"rgba(152,152,152,0.2)");//FIRE
+		bgCtx.globalAlpha = 1;
+		bgCtx.globalCompositeOperation = "source-over";
+
 
 
 		//diagonal lines
@@ -190,7 +189,7 @@ window.onload = function(){
 		bgCtx.textAlign="center";
 		bgCtx.textBaseline="middle";
 
-		function buildWall(x,y){
+		function buildWall(x,y,table){
 
 
 			//draw
@@ -212,17 +211,17 @@ window.onload = function(){
 			addEntity( makeLine( x(0), y(tableHeight+cornerRadius), x(tableHeight), y(tableHeight+cornerRadius), BACKGROUND ) );
 			addEntity( makeLine( x(tableHeight+cornerRadius), y(0), x(tableHeight+cornerRadius), y(tableHeight), BACKGROUND ) );
 
-			style(bgCtx,PADDLE_COLOR);
+			style(bgCtx,MONSTER_COLORS[table]);
 			var char_ = x==identity ? leftChar : rightChar;
 			bgCtx.fillText(toChar(char_),x(tableHeight+cornerRadius+130)-2,y(50)-3);
 			char_ = y==identity ? upChar : downChar;
 			bgCtx.fillText(toChar(char_),x(50)-2,y(tableHeight+cornerRadius+130)-3);
 		}
 
-		buildWall(identity,identity);
-		buildWall(identity,mirror);
-		buildWall(mirror,identity);
-		buildWall(mirror,mirror);
+		buildWall(identity,identity,0);
+		buildWall(identity,mirror,1);
+		buildWall(mirror,identity,2);
+		buildWall(mirror,mirror,3);
 
 
 		//Also build mob skins
@@ -283,26 +282,37 @@ window.onload = function(){
 		monsterCtx.stroke();
 		//Dots
 		drawCircle(monsterCtx,10,7,1,"#d72");
-		drawCircle(monsterCtx,24,9,1,"#d72");
-		drawCircle(monsterCtx,7,20,1,"#d72");
-		drawCircle(monsterCtx,20,14,1,"#d72");
-		drawCircle(monsterCtx,8,30,1,"#d72");
-		drawCircle(monsterCtx,28,32,1,"#d72");
+		drawCircle(monsterCtx,24,9,1);
+		drawCircle(monsterCtx,7,20,1);
+		drawCircle(monsterCtx,20,14,1);
+		drawCircle(monsterCtx,8,30,1);
+		drawCircle(monsterCtx,28,32,1);
 		//eyes
-		monsterCtx.scale(1, 3/2);
-		drawCircle(monsterCtx,13,14,4,"#111","#d72",1);
-		monsterCtx.scale(1, 2/3);
-		monsterCtx.stroke();
-		monsterCtx.scale(1, 3/2);
-		drawCircle(monsterCtx,26,14,4,"#111","#d72",1);
-		monsterCtx.scale(1, 2/3);
-		monsterCtx.stroke();
+		for(var i=0;i<2;i++){
+			var fill;
+			if(i===0){
+				monsterCtx.globalCompositeOperation = "destination-out";
+				fill = "#000";
+			}else{
+				monsterCtx.globalCompositeOperation = "source-over";
+				fill = null;
+			}
+			monsterCtx.scale(1, 3/2);
+			drawCircle(monsterCtx,13,14,4,fill,"#d72",1);
+			monsterCtx.scale(1, 2/3);
+			//monsterCtx.stroke();
+			monsterCtx.scale(1, 3/2);
+			drawCircle(monsterCtx,26,14,4,fill,"#d72",1);
+			monsterCtx.scale(1, 2/3);
+			//monsterCtx.stroke();
+		}
 
 		//GLASS
 		monsterCtx.translate(s+8, 0);
 
 		monsterCtx.lineCap = "round";
 		//Support
+		/*
 		style(monsterCtx,0,"red",4);
 		monsterCtx.beginPath();
 		monsterCtx.arc(s2, s2-2, s2, 0.6, 2.54);
@@ -310,6 +320,7 @@ window.onload = function(){
 		monsterCtx.beginPath();
 		monsterCtx.arc(s2, s2-10, s2+5, 1, 2.14);
 		monsterCtx.stroke();
+		*/
 		//sphere
 		drawCircle(monsterCtx,s2,s2,s2-4,"rgba(255,255,255,0.1)","#fff",2);
 		//Reflection
@@ -519,11 +530,17 @@ window.onload = function(){
 	}
 
 	function updatePhysics(){
-		var i,len,e;
+		var i,len, e,eLen;
 
 		//rotate moving bumbers
-		for(i=0,len=movingBumbers.length ; i<len ; i++){
-			e = movingBumbers[i];
+		len=movingBumbers.length;
+		eLen = movingBumbers.length + monsters.n;
+		for(i=0 ; i<eLen ; i++){
+			if(i<len){
+				e = movingBumbers[i];
+			}else{
+				e = monsters[i-len];
+			}
 			e.a = e.a+e.da;
 			//moving bumper
 			e.x = halfSize+Math.cos(e.a)* e.d;
@@ -603,7 +620,7 @@ window.onload = function(){
 			ball.collide = false;
 			var prevVx = ball.v.x;
 			var prevVy = ball.v.y;
-			var eLen = entities.length;
+			eLen = entities.length;
 			len = eLen + monsters.n;
 			for(i=0 ; i<len ; i++){
 				if(i<eLen){
@@ -617,12 +634,15 @@ window.onload = function(){
 					var l;
 					var collisionVector = tempVector;
 					if(e.shape==CIRCLE){
+
+						/*
 						if(e.kind == MONSTER){
 							//ball goes through fire
 							if(e.elt==FIRE || e.dead){
 								continue;
 							}
 						}
+						*/
 
 						if(collideCircle(ball,e)){
 							e.collide = true;
@@ -831,7 +851,12 @@ window.onload = function(){
 						var sin = Math.sin(Math.acos(cos));
 						if(sin<0) sin=-sin;
 
-						var bounciness = e.kind == BUMPER ||("elt" in e && e.elt!=EARTH) ? 1.5 : 0.2;
+						var bounciness =  0.2;
+						if(e.kind==BUMPER){
+							bounciness = 1.5;
+						}else if(e.kind==MONSTER){
+							bounciness = -0.1;
+						}
 
 						collisionVector.x *= cos * bounciness * vl;
 						collisionVector.y *= cos * bounciness * vl;
@@ -1038,10 +1063,12 @@ window.onload = function(){
 					stroke = WALL_COLOR;
 
 					if(e.kind==PADDLE){
-						stroke = PADDLE_COLOR;
+						stroke = MONSTER_COLORS[e.table][1];
+						/*
 						if(e.collide){
 							stroke = COLLIDE_COLOR;
 						}
+						*/
 					}
 				}
 				if(stroke){
@@ -1061,7 +1088,6 @@ window.onload = function(){
 			var a = 1;
 			var m = monsters[i];
 			var size = (spriteSize+spriteMargin*2);
-			//drawCircle(entityCtx, m.x-cameraX, m.y-cameraY, m.r,DEBUG_COLOR);
 			if(m.dead){
 				m.cpt--;
 				if(m.cpt===0){
@@ -1081,11 +1107,23 @@ window.onload = function(){
 					a = m.cpt/50;
 				}
 			}
+
+			entityCtx.globalAlpha = 0.2*a;
+			drawCircle(entityCtx, m.x-cameraX, m.y-cameraY, m.r,MONSTER_COLORS[m.elt][0]);
+			if(m.elt==AIR){
+				entityCtx.globalAlpha = 1;
+				entityCtx.globalCompositeOperation = "destination-out";
+				drawCircle(entityCtx, m.x-cameraX, m.y-cameraY, 17,MONSTER_COLORS[m.elt][0]);
+				entityCtx.globalCompositeOperation = "source-over";
+			}
 			entityCtx.globalAlpha = a;
+			drawCircle(entityCtx, m.x-cameraX, m.y-cameraY, m.r,null,MONSTER_COLORS[m.elt][0]);
+			//entityCtx.globalCompositeOperation = "destination-out ";
 			drawImage(entityCtx,monsterCanvas,
 				m.elt*size,0,size,size,
 				m.x-size/2 - cameraX,m.y-size/2 - cameraY,size,size
 			);
+			//entityCtx.globalCompositeOperation = "source-over";
 		}
 		entityCtx.globalAlpha = 1;
 
@@ -1125,7 +1163,7 @@ window.onload = function(){
 				monster = makeEntity(CIRCLE,MONSTER);
 				monsters.push(monster);
 				monster.elt = monsters.n%4;
-				monster.r = spriteSize/2 - 4;
+				monster.r = spriteSize - 2;
 			}else{
 				monster = monsters[monsters.n];
 			}
@@ -1136,10 +1174,14 @@ window.onload = function(){
 			monster.y = bumper.y;
 			monster.cpt = 0;
 			monster.dead = 0;
+			monster.da = -2*bumper.da;
+			monster.a = bumper.a;
+			monster.d = bumper.d;
 		}
 	}
 
 	function tic(){
+		if(stb) stb();
 		processInput();
 		updatePhysics();
 		updateCamera();
@@ -1148,6 +1190,8 @@ window.onload = function(){
 
 		window.requestAnimationFrame(tic);
 		//setTimeout(tic,1000);
+
+		if(ste) ste();
 	}
 
 
@@ -1599,4 +1643,171 @@ window.onload = function(){
         window.cancelAnimationFrame = function(id) {
             clearTimeout(id);
         };
-}());
+}());;
+var stb;
+var ste;
+
+(function(){
+	var loadInterval = setInterval( function () {
+		if (document.readyState === "complete") {
+			var stats = new Stats();
+			stb = stats.begin;
+			ste = stats.end;
+			stats.setMode(0); // 0: fps, 1: ms
+
+			// Align top-left
+			stats.domElement.style.position = 'absolute';
+			stats.domElement.style.left = '0px';
+			stats.domElement.style.top = '0px';
+
+			document.body.appendChild( stats.domElement );
+
+			clearInterval(loadInterval);
+		}
+	}, 200 );
+})();;/**
+ * @author mrdoob / http://mrdoob.com/
+ */
+
+var Stats = function () {
+	var startTime = Date.now(), prevTime = startTime;
+	var ms = 0, msMin = Infinity, msMax = 0;
+	var fps = 0, fpsMin = Infinity, fpsMax = 0;
+	var frames = 0, mode = 0;
+
+	var container = document.createElement( 'div' );
+	container.id = 'stats';
+	container.addEventListener( 'mousedown', function ( event ) { event.preventDefault(); setMode( ++ mode % 2 ) }, false );
+	container.style.cssText = 'width:80px;opacity:0.9;cursor:pointer';
+
+	var fpsDiv = document.createElement( 'div' );
+	fpsDiv.id = 'fps';
+	fpsDiv.style.cssText = 'padding:0 0 3px 3px;text-align:left;background-color:#002';
+	container.appendChild( fpsDiv );
+
+	var fpsText = document.createElement( 'div' );
+	fpsText.id = 'fpsText';
+	fpsText.style.cssText = 'color:#0ff;font-family:Helvetica,Arial,sans-serif;font-size:9px;font-weight:bold;line-height:15px';
+	fpsText.innerHTML = 'FPS';
+	fpsDiv.appendChild( fpsText );
+
+	var fpsGraph = document.createElement( 'div' );
+	fpsGraph.id = 'fpsGraph';
+	fpsGraph.style.cssText = 'position:relative;width:74px;height:30px;background-color:#0ff';
+	fpsDiv.appendChild( fpsGraph );
+
+	while ( fpsGraph.children.length < 74 ) {
+
+		var bar = document.createElement( 'span' );
+		bar.style.cssText = 'width:1px;height:30px;float:left;background-color:#113';
+		fpsGraph.appendChild( bar );
+
+	}
+
+	var msDiv = document.createElement( 'div' );
+	msDiv.id = 'ms';
+	msDiv.style.cssText = 'padding:0 0 3px 3px;text-align:left;background-color:#020;display:none';
+	container.appendChild( msDiv );
+
+	var msText = document.createElement( 'div' );
+	msText.id = 'msText';
+	msText.style.cssText = 'color:#0f0;font-family:Helvetica,Arial,sans-serif;font-size:9px;font-weight:bold;line-height:15px';
+	msText.innerHTML = 'MS';
+	msDiv.appendChild( msText );
+
+	var msGraph = document.createElement( 'div' );
+	msGraph.id = 'msGraph';
+	msGraph.style.cssText = 'position:relative;width:74px;height:30px;background-color:#0f0';
+	msDiv.appendChild( msGraph );
+
+	while ( msGraph.children.length < 74 ) {
+
+		var bar = document.createElement( 'span' );
+		bar.style.cssText = 'width:1px;height:30px;float:left;background-color:#131';
+		msGraph.appendChild( bar );
+
+	}
+
+	var setMode = function ( value ) {
+
+		mode = value;
+
+		switch ( mode ) {
+
+			case 0:
+				fpsDiv.style.display = 'block';
+				msDiv.style.display = 'none';
+				break;
+			case 1:
+				fpsDiv.style.display = 'none';
+				msDiv.style.display = 'block';
+				break;
+		}
+
+	};
+
+	var updateGraph = function ( dom, value ) {
+
+		var child = dom.appendChild( dom.firstChild );
+		child.style.height = value + 'px';
+
+	};
+
+	return {
+
+		REVISION: 12,
+
+		domElement: container,
+
+		setMode: setMode,
+
+		begin: function () {
+
+			startTime = Date.now();
+
+		},
+
+		end: function () {
+
+			var time = Date.now();
+
+			ms = time - startTime;
+			msMin = Math.min( msMin, ms );
+			msMax = Math.max( msMax, ms );
+
+			msText.textContent = ms + ' MS (' + msMin + '-' + msMax + ')';
+			updateGraph( msGraph, Math.min( 30, 30 - ( ms / 200 ) * 30 ) );
+
+			frames ++;
+
+			if ( time > prevTime + 1000 ) {
+
+				fps = Math.round( ( frames * 1000 ) / ( time - prevTime ) );
+				fpsMin = Math.min( fpsMin, fps );
+				fpsMax = Math.max( fpsMax, fps );
+
+				fpsText.textContent = fps + ' FPS (' + fpsMin + '-' + fpsMax + ')';
+				updateGraph( fpsGraph, Math.min( 30, 30 - ( fps / 100 ) * 30 ) );
+
+				prevTime = time;
+				frames = 0;
+
+			}
+
+			return time;
+
+		},
+
+		update: function () {
+
+			startTime = this.end();
+
+		}
+
+	}
+
+};
+
+if ( typeof module === 'object' ) {
+	module.exports = Stats;
+}

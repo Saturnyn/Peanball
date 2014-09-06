@@ -6,23 +6,24 @@ module.exports = function(grunt) {
 			options: {
 				separator: ';'
 			},
-			dist: {
-				src: ['src/**/*.js'],
-				dest: 'bin-debug/<%= pkg.name %>.js'
+			distDebug: {
+				src: ['src/*.js'],
+				dest: 'bin-debug/game.js'
+			},
+			distRelease: {
+				src: ['src/game.js','requestAnimation.js'],
+				dest: 'bin-release/game.js'
 			}
 		},
 		uglify: {
-			options: {
-				banner: '/*! <%= pkg.name %> <%= grunt.template.today("dd-mm-yyyy") %> */\n'
-			},
 			dist: {
 				files: {
-					'bin-release/<%= pkg.name %>.js': ['<%= concat.dist.dest %>']
+					'bin-release/game.js': 'bin-release/game.js'
 				}
 			}
 		},
 		jshint: {
-			files: ['Gruntfile.js', 'src/**/*.js', 'test/**/*.js'],
+			files: ['Gruntfile.js', 'src/game.js'],
 			options: {
 				// options here to override JSHint defaults
 				globals: {
