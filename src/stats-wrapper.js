@@ -6,8 +6,20 @@ var ste;
 	var loadInterval = setInterval( function () {
 		if (document.readyState === "complete") {
 			var stats = new Stats();
-			stb = stats.begin;
-			ste = stats.end;
+
+			var t;
+			stb = function(){
+				stats.begin();
+				t = Date.now();
+			};
+			ste = function(){
+				t = Date.now()-t;
+				if(t>10){
+					//debug break here
+					console.log("FRAAAAAAME",t);
+				}
+				stats.end();
+			};
 			stats.setMode(0); // 0: fps, 1: ms
 
 			// Align top-left
