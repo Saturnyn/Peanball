@@ -20,7 +20,7 @@ var ste;
 				}
 				stats.end();
 			};
-			stats.setMode(0); // 0: fps, 1: ms
+			stats.setMode(1); // 0: fps, 1: ms
 
 			// Align top-left
 			stats.domElement.style.position = 'absolute';

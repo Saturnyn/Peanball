@@ -368,7 +368,7 @@ window.onload = function(){
 	var monsters;
 	var ball;
 	var pads;
-	var movingBumbers;
+	var movingBumpers;
 
 	var maxSpeed = 15;
 	var ballRadius = 14;
@@ -492,7 +492,7 @@ window.onload = function(){
 			tempVector.x = mouse.x-ball.x;
 			tempVector.y = mouse.y-ball.y;
 			normalize(tempVector);
-			ball.boostCpt = 6;
+			ball.boostCpt = 4;
 			ball.boostX = tempVector.x *2.5;
 			ball.boostY = tempVector.y *2.5;
 
@@ -540,15 +540,15 @@ window.onload = function(){
 		var i,len, e,eLen;
 
 		//rotate moving bumbers
-		len=movingBumbers.length;
-		eLen = movingBumbers.length + monsters.n;
+		len=movingBumpers.length;
+		eLen = movingBumpers.length + monsters.n;
 		for(i=0 ; i<eLen ; i++){
 			if(i<len){
-				e = movingBumbers[i];
+				e = movingBumpers[i];
 			}else{
 				e = monsters[i-len];
 			}
-			e.a = e.a+e.da;
+			e.a += e.da;
 			//moving bumper
 			e.x = halfSize+Math.cos(e.a)* e.d;
 			e.y = halfSize+Math.sin(e.a)* e.d;
@@ -647,10 +647,11 @@ window.onload = function(){
 								if(killMap[ball.elt] == e.elt){
 									//ball kills monster of opposite element
 									e.dead = true;
-									ball.elt = -1; //once it is used
+									//ball.elt = -1;
 								}
 
-								if(e.dead){
+								if(e.dead || e.elt==ball.elt){
+									//no collision with same element or dead element
 									continue;
 								}else{
 									if(e.elt != ball.elt){
@@ -795,7 +796,7 @@ window.onload = function(){
 										//make it more interesting going to the edge of the pad
 										boostRatio = 0.2+(0.3*boostRatio+0.7*boostRatio*boostRatio); //interpolate somewhere between y=x and y=x^2
 
-										var boostCpt = (boostRatio*20) >> 0;
+										var boostCpt = (boostRatio*8) >> 0;
 										var speed = maxSpeed*boostRatio; //reach 60% of max speed
 										/*
 										 if(!ball.boostCpt){
@@ -870,9 +871,13 @@ window.onload = function(){
 
 						var bounciness =  0.2;
 						if(e.kind==BUMPER){
-							bounciness = 1.5;
+							bounciness = 1.3;
 						}else if(e.kind==MONSTER){
-							bounciness = 0.5;
+							if(e.elt==ball.elt){
+								bounciness = 1.5;
+							}else{
+								bounciness = 0.5;
+							}
 						}
 
 						collisionVector.x *= cos * bounciness * vl;
@@ -1028,7 +1033,7 @@ window.onload = function(){
 		//Draw camera center position
 		//drawCircle(bgCtx,cameraX+screenWidth/2,cameraY+screenHeight/2,1,TILE_LINE_COLOR_3);
 
-
+		var dx,dy;
 		for(var i=0 , len=entities.length ; i<len ; i++){
 			var e = entities[i];
 			var x = e.x-cameraX;
@@ -1045,7 +1050,6 @@ window.onload = function(){
 				}
 
 				//draw camembert
-				var dx,dy;
 				var angle = Math.atan2(ball.v.y,ball.v.x);
 				ball.cpt = (++ball.cpt)%20;
 				var dAngle = ball.cpt;
@@ -1115,6 +1119,10 @@ window.onload = function(){
 			var a = 1;
 			var m = monsters[i];
 			var size = (spriteSize+spriteMargin*2);
+
+			var vulnerable = killMap[ball.elt] == m.elt;
+			var same = ball.elt == m.elt;
+
 			if(m.dead){
 				m.cpt-=10;
 				if(m.cpt===0){
@@ -1136,23 +1144,37 @@ window.onload = function(){
 			}
 			//console.log(m.dead, m.cpt,a);
 
-
-			entityCtx.globalAlpha = 0.2*a;
-			drawCircle(entityCtx, m.x-cameraX, m.y-cameraY, m.r,ELT_COLORS[m.elt][0]);
-			if(m.elt==AIR){
-				entityCtx.globalAlpha = 1;
-				entityCtx.globalCompositeOperation = "destination-out";
-				drawCircle(entityCtx, m.x-cameraX, m.y-cameraY, 17,ELT_COLORS[m.elt][0]);
-				entityCtx.globalCompositeOperation = "source-over";
+			if(!same){
+				entityCtx.globalAlpha = 0.2*a;
+				drawCircle(entityCtx, m.x-cameraX, m.y-cameraY, m.r,ELT_COLORS[m.elt][0]);
+				if(m.elt==AIR){
+					entityCtx.globalAlpha = 1;
+					entityCtx.globalCompositeOperation = "destination-out";
+					drawCircle(entityCtx, m.x-cameraX, m.y-cameraY, 17,ELT_COLORS[m.elt][0]);
+					entityCtx.globalCompositeOperation = "source-over";
+				}
 			}
-
+			if(same){
+				//Same elment is faded out
+				a *= 0.5;
+			}
 			entityCtx.globalAlpha = a;
-			drawCircle(entityCtx, m.x-cameraX, m.y-cameraY, m.r,null,ELT_COLORS[m.elt][0]);
 
+			dx = 0;
+			dy = 0;
+			if(!vulnerable && !same){
+				//incompatible element have a border
+				drawCircle(entityCtx, m.x-cameraX, m.y-cameraY, m.r,null,ELT_COLORS[m.elt][0]);
+			}
+			if(vulnerable){
+				//Shake in fear !
+				dx = 3*(Math.random()-0.5);
+				dy = 3*(Math.random()-0.5);
+			}
 			//entityCtx.globalCompositeOperation = "destination-out ";
 			entityCtx.drawImage(monsterCanvas,
 				m.elt*size,0,size,size,
-				m.x-size/2 - cameraX,m.y-size/2 - cameraY,size,size
+				m.x-size/2 - cameraX + dx, m.y-size/2 - cameraY + dy,size,size
 			);
 			//entityCtx.globalCompositeOperation = "source-over";
 
@@ -1160,7 +1182,7 @@ window.onload = function(){
 		}
 		entityCtx.globalAlpha = 1;
 
-
+		/*
 		var shot;
 		//draw shots
 		for(i=0 , len=shots.n ; i<len ; i++){
@@ -1172,6 +1194,7 @@ window.onload = function(){
 			//drawCircle(fxCtx, shot.x-cameraX, shot.y-cameraY, 2, SHOT_COLOR);
 			//drawCircle(fxCtx, shot.x-shot.v.x-cameraX, shot.y-shot.v.y-cameraY, 2, SHOT_COLOR);
 		}
+		*/
 
 		/*
 		 //Draw velocity vector
@@ -1202,7 +1225,7 @@ window.onload = function(){
 			}
 			monsters.n++;
 
-			var bumper = movingBumbers[monsters.n%movingBumbers.length];
+			var bumper = movingBumpers[monsters.n%movingBumpers.length];
 			monster.x = bumper.x;
 			monster.y = bumper.y;
 			monster.cpt = 0;
@@ -1249,21 +1272,28 @@ window.onload = function(){
 
 		//addMultipleAndMirror( makeCircle(70,260,30,BUMPER));
 		//Create moving obstacles
-		movingBumbers = [];
-		var n = 6;
+		movingBumpers = [];
+		var n = 4;
 		for(var i=0 ; i<n ; i++){
-			var r = monsterRadius+rand()*30;
-			var dist = 80+r+(centerRadius-2*r-80)*i/n >>0;
+			var r = monsterRadius+4;
+			var dist = 2*r+(centerRadius-2*r)*i/n >>0;
 			var angle = rand()*2*PI;
 			var bumper = makeCircle(0,0,r,BUMPER); //position is computed in updatePhysics
-			movingBumbers.push(addEntity(bumper));
+			movingBumpers.push(addEntity(bumper));
 			//move speed, in pixels per frame
-			var speed = 0.2+rand()*0.2 * (rand()>0.5 ? -1:1);
+			var speed = (0.2+rand()*0.2)*(rand()>0.5 ? -1:1);
 			//da = angular speed in radian per frame.
 			bumper.da = speed/dist;
 			bumper.a = angle;
 			bumper.d = dist;
-			//console.log(bumper.da);
+			//console.log(bumper,speed);
+
+			if(i>1){
+				//Add mirror bumpers on edges
+				bumper = cloneObject(bumper);
+				bumper.a += PI;
+				movingBumpers.push(addEntity(bumper));
+			}
 		}
 
 		//addMultiple( makeCircle(600,400,30,BUMPER));
@@ -1699,7 +1729,7 @@ var ste;
 				}
 				stats.end();
 			};
-			stats.setMode(0); // 0: fps, 1: ms
+			stats.setMode(1); // 0: fps, 1: ms
 
 			// Align top-left
 			stats.domElement.style.position = 'absolute';
