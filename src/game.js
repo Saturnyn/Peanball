@@ -16,17 +16,6 @@ window.onload = function(){
 	// sizes and DOM
 	//------------------------------------------------------------------------------------------------------------------
 
-
-	//used for entity.table
-	//var BOTTOM = 0;
-	//var RIGHT = 1;
-	//var TOP = 2;
-	//var LEFT = 3;
-	var WATER = 0;
-	var FIRE = 1;
-	var EARTH = 2;
-	var AIR = 3;
-
 	var tableWidth = 700;
 	var tableHeight = 220;
 	var cornerRadius = 200;
@@ -43,13 +32,13 @@ window.onload = function(){
 	var bgCanvas = makeCanvas(totalSize, totalSize);
 	var bgCtx = getContext(bgCanvas);
 
-	var renderCanvas = makeCanvas(screenWidth,screenHeight);
+	var renderCanvas = makeCanvas();
 	var renderCtx = getContext(renderCanvas);
 
-	var fxCanvas = makeCanvas(screenWidth,screenHeight);
+	var fxCanvas = makeCanvas();
 	var fxCtx = getContext(fxCanvas);
 
-	var entityCanvas = makeCanvas(screenWidth,screenHeight);
+	var entityCanvas = makeCanvas();
 	var entityCtx = getContext(entityCanvas);
 
 	var spriteMargin = 4;
@@ -74,9 +63,6 @@ window.onload = function(){
 	body.onresize();
 
 	body.appendChild(renderCanvas);
-	//debug
-	//body.appendChild(tempCanvas);
-	//body.appendChild(bgCanvas);
 
 	//------------------------------------------------------------------------------------------------------------------
 	// Background & walls
@@ -90,12 +76,6 @@ window.onload = function(){
 	var WALL_COLOR = "#08e";//"#ddd";
 	var VOID_COLOR = "#000";
 	var COLLIDE_COLOR = "#0d0";
-	//var PADDLE_COLOR = "#dd0";
-
-	var DEBUG_COLOR = "#0f0";
-
-	var SHOT_COLOR = "#fa0";
-
 
 	var ELT_COLORS = [
 		//WATER
@@ -105,14 +85,10 @@ window.onload = function(){
 		//EARTH
 		["#a64","#864"],
 		//AIR
-		["rgba(255,255,255,0.5","#fff"]
+		["rgba(255,255,255,0.5","#fff"],
+		//NO ELEMENT
+		["#ff6","#ff6"]
 	];
-	ELT_COLORS[-1] = ["#ff6","#ff6"];
-	var killMap = {};
-	killMap[WATER] = FIRE;
-	killMap[FIRE] = WATER;
-	killMap[EARTH] = AIR;
-	killMap[AIR] = EARTH;
 
 	function buildBackground(){
 		var tempCanvas = makeCanvas(tileSize, tileSize);
@@ -124,64 +100,20 @@ window.onload = function(){
 		fillRect(tempCtx,0,0,tileSize-2,tileSize-2,TILE_FILL_COLOR); //"#f8f8f8");
 		fillRect(bgCtx,0,0,totalSize,totalSize, tempCanvas);
 
-		/*
-		for(var i=0 ; i<4 ; i++){
-			var x=0, y=0, w = totalSize, h=totalSize, c,c2;
-			fillRect(tempCtx,0,0,tempCanvas.width,tempCanvas.height,TILE_FILL_COLOR); //"#f8f8f8");
-			//tempCtx.globalAlpha = 0.4;
-			tempCtx.beginPath();
-
-			if(i===0){
-				y = totalSize-tableHeight;
-				h = tableHeight;
-				//c = "#358";
-
-				style(tempCtx,0,"#358",2);
-				tempCtx.moveTo(0,tileSize/2);
-				tempCtx.quadraticCurveTo(tileSize/4,tileSize/4,tileSize/2,tileSize/2);
-				tempCtx.quadraticCurveTo(3*tileSize/4,3*tileSize/4,tileSize,tileSize/2);
-				tempCtx.stroke();
-			}else if(i==1){
-
-				x = totalSize-tableHeight-2;
-				w = tableHeight;
-				//c = "#fa0";
-			}else if(i==2){
-				h = tableHeight;
-				c = "#421";
-
-
-			}else{
-				w = tableHeight;
-				c = "#def";
-			}
-
-			//fillRect(tempCtx,0,0,tileSize,tileSize,c); //"#fff");
-			//fillRect(tempCtx,0,0,tileSize-1,tileSize-1,c2); //"#eee");
-			//fillRect(tempCtx,0,0,tileSize-2,tileSize-2,TILE_FILL_COLOR); //"#f8f8f8");
-			fillRect(bgCtx,x,y,w,h, tempCanvas);
-			tempCtx.globalAlpha = 1;
-		}
-
-		*/
 		//element overlay
 		bgCtx.globalAlpha = 0.1;
-		//bgCtx.globalCompositeOperation = "lighten";
 		fillRect(bgCtx,0,totalSize-tableHeight-2,totalSize,tableHeight,ELT_COLORS[WATER][1]);//WATER
 		fillRect(bgCtx,totalSize-tableHeight-2,0,tableHeight,totalSize,ELT_COLORS[FIRE][1]);//FIRE
 		fillRect(bgCtx,0,0,totalSize,tableHeight,ELT_COLORS[EARTH][1]);//EARTH
 		fillRect(bgCtx,0,0,tableHeight,totalSize,ELT_COLORS[AIR][1]);//AIR
-		//fillRect(bgCtx,totalSize-tableHeight-2,0,tableHeight,totalSize,"rgba(152,152,152,0.2)");//FIRE
 		bgCtx.globalAlpha = 1;
 		bgCtx.globalCompositeOperation = "source-over";
-
-
 
 		//diagonal lines
 		drawLine(bgCtx,0,0,totalSize,totalSize,TILE_LINE_COLOR_3);
 		drawLine(bgCtx,totalSize,0,0,totalSize,TILE_LINE_COLOR_3);
 
-		//middle circles
+		//middle circle
 		drawCircle(bgCtx,halfSize,halfSize,8,TILE_FILL_COLOR,TILE_LINE_COLOR_3);
 		//drawCircle(bgCtx,halfSize,halfSize,centerRadius,null,TILE_LINE_COLOR_3,1);
 
@@ -190,15 +122,9 @@ window.onload = function(){
 		var leftChar = 0x21e6;
 		var rightChar = 0x21e8;
 
-		bgCtx.font = "64px sans-serif";
-		bgCtx.textAlign="center";
-		bgCtx.textBaseline="middle";
-
-		function buildWall(x,y,t1,t2){
-
-
-			//draw
-			var m = 4; //margin
+		function buildSide(x,y,t1,t2){
+			//draw wall
+			var m = 4;
 			style(bgCtx,VOID_COLOR,WALL_COLOR,2);
 			bgCtx.beginPath();
 			bgCtx.moveTo( x(-m), y(-m) );
@@ -211,31 +137,41 @@ window.onload = function(){
 			bgCtx.fill();
 			bgCtx.stroke();
 
-			//add entities
+			//add wall entities
 			addEntity( makeCircle( x(tableHeight), y(tableHeight), cornerRadius,BACKGROUND) );
 			addEntity( makeLine( x(0), y(tableHeight+cornerRadius), x(tableHeight), y(tableHeight+cornerRadius), BACKGROUND ) );
 			addEntity( makeLine( x(tableHeight+cornerRadius), y(0), x(tableHeight+cornerRadius), y(tableHeight), BACKGROUND ) );
 
-			style(bgCtx,ELT_COLORS[t1][1]);
+			//draw arrows
 			var char_ = x==identity ? leftChar : rightChar;
+			bgCtx.font = "64px sans-serif";
+			bgCtx.textAlign="center";
+			bgCtx.textBaseline="middle";
+			style(bgCtx,ELT_COLORS[t1][1]);
 			bgCtx.fillText(toChar(char_),x(tableHeight+cornerRadius+130)-2,y(50)-3);
-
 			style(bgCtx,ELT_COLORS[t2][1]);
 			char_ = y==identity ? upChar : downChar;
 			bgCtx.fillText(toChar(char_),x(50)-2,y(tableHeight+cornerRadius+130)-3);
+
+			//draw element text
+			bgCtx.font = "16px sans-serif";
+			bgCtx.textAlign="center";
+			bgCtx.textBaseline="middle";
+			style(bgCtx,ELT_COLORS[t1][1]);
+			bgCtx.fillText(ELEMENT_TEXTS[t1],x(tableHeight+cornerRadius+30),y(12));
+			style(bgCtx,ELT_COLORS[t2][1]);
+			bgCtx.fillText(ELEMENT_TEXTS[t2],x(16),y(tableHeight+cornerRadius+12));
 		}
+		buildSide(identity,identity,2,3);
+		buildSide(identity,mirror,0,3);
+		buildSide(mirror,identity,2,1);
+		buildSide(mirror,mirror,0,1);
 
-		buildWall(identity,identity,2,3);
-		buildWall(identity,mirror,0,3);
-		buildWall(mirror,identity,2,1);
-		buildWall(mirror,mirror,0,1);
 
-
-		//Also build mob skins
+		//Also draw monster skins
 		var s = spriteSize;
 		var s2 = s/2;
 		var r = spriteMargin;
-
 
 		// ICE
 		monsterCtx.translate(4, 4);
@@ -318,7 +254,7 @@ window.onload = function(){
 		monsterCtx.translate(s+8, 0);
 
 		monsterCtx.lineCap = "round";
-		//Support
+		//Sphere support (looks weird)
 		/*
 		style(monsterCtx,0,"red",4);
 		monsterCtx.beginPath();
@@ -329,20 +265,15 @@ window.onload = function(){
 		monsterCtx.stroke();
 		*/
 		//sphere
-		drawCircle(monsterCtx,s2,s2,s2-4,/*"rgba(255,255,255,0.1)"*/null,"#fff",2);
+		drawCircle(monsterCtx,s2,s2,s2-4,null,"#fff",2);
 		//Reflection
 		style(0,0,1);
 		monsterCtx.beginPath();
 		monsterCtx.arc(s2, s2, s2-8, 3.2, 4.4);
 		monsterCtx.stroke();
 		//eyes
-		//drawLine(monsterCtx,s2-4,18,s2+6,18,"#fff",2);
 		drawCircle(monsterCtx,s2-4,s2+4,4,0,"#fff",2);
 		drawCircle(monsterCtx,s2+4,s2+4,4,0,"#fff",2);
-		//drawLine(monsterCtx,s2-2,18,s2-2,21);
-		//drawLine(monsterCtx,s2+3,18,s2+3,21);
-
-		//drawImage(bgCtx,monsterCanvas,halfSize,1.5*halfSize);
 	}
 
 
@@ -359,33 +290,60 @@ window.onload = function(){
 		BUMPER = "bp",
 		OBSTACLE = "o",
 		PADDLE = "p",
-		SHOT = "s",
 		MONSTER = "m";
 
+	//used for entity.elt
+	var WATER = 0;
+	var FIRE = 1;
+	var EARTH = 2;
+	var AIR = 3;
+	var NO_ELEMENT = 4;
+	var ELEMENT_TEXTS = ["Water","Fire","Earth","Air"];
 
+	var killMap = {};
+	killMap[WATER] = FIRE;
+	killMap[FIRE] = WATER;
+	killMap[EARTH] = AIR;
+	killMap[AIR] = EARTH;
+
+
+	//ball,walls,slopes,padles (everything that isn't added/removed)
 	var entities;
-	var shots;
 	var monsters;
 	var ball;
 	var pads;
 	var movingBumpers;
 
-	var maxSpeed = 15;
-	var ballRadius = 14;
-	var GRAVITY = 0.2;
-	var FRICTION = 0.99;
-	var SIDE_FRICTION = 0.94;
+	var BALL_RADIUS = 14;
 
+	//Start seq via right button
+	var started = false;
+	var START_CPT_MAX = 100;
+	var startCpt = 0;
+	var startPulse = 0;
+	var startAngle = 0;
+
+	//basic physics settings
+	var MAX_SPEED = 10;
+	var GRAVITY = 0.2;
+
+	//boost settings (paddle and left click)
+	var MIN_BOOST_CPT = 1;
+	var BOOST_CPT_BONUS = 12;
+	var MIN_BOOST_SPEED = 0.2*MAX_SPEED;
+	var BOOST_SPEED_BONUS = 0.8*MAX_SPEED;
+
+	var canBoost = false; //left click boost
+
+	//line equation
+	var tempLineEq = {};
+	//temp vector used by physics
+	var tempVector = {}; //Temp var, return value for collision detection
+
+	//input
 	var keys = {};
 	var mouse = {};
-	var started = false;
-	var startCpt = 0;
-	var startCptMax = 100;
 
-	var tempLineEq = {};
-
-	var tempVector = {}; //Temp var, return value for collision detection
-	var tempVector2 = {};
 	//------------------------------------------------------------------------------------------------------------------
 	// main loop
 	//------------------------------------------------------------------------------------------------------------------
@@ -394,33 +352,30 @@ window.onload = function(){
 		startCpt = 0;
 		started = false;
 		entities = [];
-		shots = [];
 		monsters = [];
 		monsters.n = 0;
-		shots.n = 0;
 		buildBackground();
 		buildObjects();
 	}
 
 	function processInput(){
-
 		//boost sequence
 		if(!started){
-			if(keys.space){
-				startCpt++;
+			if(mouse.right){
+				if(startCpt<START_CPT_MAX){
+					startCpt++;
+				}
 			}else{
 				if(startCpt>0){
-					var boost = startCpt / startCptMax;
-					if(boost>1) boost = 1;
+					var boostRatio = startCpt / START_CPT_MAX;
+					if(boostRatio>1) boostRatio = 1;
 					//Space boost: based on space held down duration + random x nudge
-					ball.boostX = 3*(1+rand());//*(rand()>0.5 ? -1 : 1);
-					ball.boostY = -maxSpeed;
-					ball.boostCpt = 10+boost*50;
+					var speed = MIN_BOOST_SPEED+BOOST_SPEED_BONUS*boostRatio;
+					ball.boostX = speed*Math.cos(startAngle);
+					ball.boostY = speed*Math.sin(startAngle);
+					ball.boostCpt = MIN_BOOST_CPT+BOOST_CPT_BONUS*boostRatio;
 					started = true;
 				}
-			}
-			if(keys.R){
-				started = true;
 			}
 		}
 
@@ -429,7 +384,7 @@ window.onload = function(){
 			var pad = pads[i];
 			var left = !pad.mirror;
 			var move;
-			if(pad.table==1){
+			if(pad.elt==1){
 				move = !left ? keys.down || keys.left : keys.up || keys.right;
 			}else{
 				move = left ? keys.up || keys.left : keys.down || keys.right;
@@ -438,11 +393,10 @@ window.onload = function(){
 			var dx = pad.ux; //Vector going from pad pivot to pad edge
 			var dy = pad.uy;
 			pad.cpt = pad.cpt || 0;
-			var maxCpt = 7;
+			var maxCpt = 9; //num frames from start to max pos (keep an odd value to avoid an annoying bug with straight position...)
 			pad.max = false;
 
 			if(move){
-				//console.log("pad moving!!!!!!!!!!!!!!!!!!!!!");
 				if(pad.cpt<maxCpt){
 					pad.cpt++;
 				}else{
@@ -475,71 +429,39 @@ window.onload = function(){
 
 		}
 
+		//DEBUG teleport
 		if(mouse.middle){
 			startCpt = 0;
 			started = true;
 			ball.x = mouse.x;
 			ball.y = mouse.y;
-			ball.a.x = ball.a.y = 0;
 			ball.v.x = ball.v.y = 0;
 			ball.boostCpt = 0;
-			mouse.right = false;
+			mouse.middle = false;
 			//console.log("mouse teleport",ball);
 		}
 
-
-		if(mouse.right){
+		//left click boost
+		if(mouse.left && canBoost){
 			tempVector.x = mouse.x-ball.x;
 			tempVector.y = mouse.y-ball.y;
-			normalize(tempVector);
-			ball.boostCpt = 4;
-			ball.boostX = tempVector.x *2.5;
-			ball.boostY = tempVector.y *2.5;
+			normalize(tempVector, MAX_SPEED);
+			ball.v.x = tempVector.x;
+			ball.v.y = tempVector.y;
 
-			mouse.right = false;
-		}
+			ball.boostCpt = MIN_BOOST_CPT;
+			ball.boostX = ball.v.x;
+			ball.boostY = ball.v.y;
 
-
-		if(mouse.left){
-			tempVector.x = mouse.x-ball.x;
-			tempVector.y = mouse.y-ball.y;
-			normalize(tempVector);
-
-			/*
-			 ball.a.x = tempVector.x*GRAVITY;
-			 ball.a.y = tempVector.y*GRAVITY;
-			 */
-
-			if(mouse.leftCpt%10===0){
-				var shot;
-				if(shots.length==shots.n){
-					shot = makeEntity(LINE,SHOT);
-					shots.push(shot);
-				}else{
-					shot = shots[shots.n];
-				}
-				shots.n++;
-
-				var shotSpeed = 10;
-				shot.x = ball.x + tempVector.x*(shotSpeed+ballRadius);
-				shot.y = ball.y + tempVector.y*(shotSpeed+ballRadius);
-				shot.v.x = tempVector.x*shotSpeed;
-				shot.v.y = tempVector.y*shotSpeed;
-
-				shot.cpt = 100;
-			}
-		}
-		if(mouse.left){
-			mouse.leftCpt++;
-		}else{
-			mouse.leftCpt=0;
+			canBoost = 0;
+			mouse.left = false;
 		}
 	}
 
 	function updatePhysics(){
 		var i,len, e,eLen;
 
-		//rotate moving bumbers
+		//rotate moving bumpers
 		len=movingBumpers.length;
 		eLen = movingBumpers.length + monsters.n;
 		for(i=0 ; i<eLen ; i++){
@@ -556,74 +478,61 @@ window.onload = function(){
 
 		//Update ball physics
 		if(started){
-			if(ball.boostCpt>0){
-				ball.boostCpt--;
-				ball.a.x = ball.boostX;
-				ball.a.y = ball.boostY;
-			}
+			//Compute gravity
 			var gx = 0;
 			var gy = 0;
-
 			var gravity = GRAVITY;
-			//TEST: add attraction force to the screen center
+			//distance to screen center
 			dx = halfSize - ball.x;
 			dy = halfSize - ball.y;
 			var range = screenWidth/2;
 			var distanceToCenter = pyth(dx,dy);
 			if(distanceToCenter < range){
+				//Reduce the gravity as we go towards the center
 				//normalize
 				dx/=distanceToCenter;
 				dy/=distanceToCenter;
 				gravity *= (0.1+0.9*distanceToCenter/range); //Close to the center, gravity gets weaker
 			}
 
-			if(1){
-				//applied gravity depends on which quadrant the ball is in
-				var x = ball.x - halfSize,
-					y = ball.y - halfSize;
+			//applied gravity depends on which quadrant the ball is in
+			var x = ball.x - halfSize,
+				y = ball.y - halfSize;
 
-				if(y>x){ //bottom left
-					if(y>-x){ //bottom right
-						gy = gravity; //bottom
-					}else{
-						gx = -gravity; // left
-					}
-				}else{  //top right
-					if(y>-x){ //bottom right
-						gx = gravity; //right
-					}else{
-						gy = -gravity; // top
-					}
+			if(y>x){ //bottom left
+				if(y>-x){ //bottom right
+					gy = gravity; //bottom
+				}else{
+					gx = -gravity; // left
+				}
+			}else{  //top right
+				if(y>-x){ //bottom right
+					gx = gravity; //right
+				}else{
+					gy = -gravity; // top
 				}
 			}
+			//Add gravity to speed
+			ball.v.x += gx;
+			ball.v.y += gy;
 
-			ball.a.x += gx;
-			ball.a.y += gy;
-
-
-			ball.v.x = (ball.v.x + ball.a.x);
-			ball.v.y = (ball.v.y + ball.a.y);
-
-			if(1){
-				ball.v.x *= FRICTION;
-				ball.v.y *= FRICTION;
+			//Apply boost
+			if(ball.boostCpt>0){
+				ball.boostCpt--;
+				ball.v.x += ball.boostX;
+				ball.v.y += ball.boostY;
 			}
 
-
-			if(ball.v.x*ball.v.x+ball.v.y*ball.v.y > maxSpeed*maxSpeed){
-				normalize(ball.v,maxSpeed);
+			//make sure speed can't be too high
+			if(ball.v.x*ball.v.x+ball.v.y*ball.v.y > MAX_SPEED*MAX_SPEED){
+				normalize(ball.v,MAX_SPEED);
 			}
+			//update position based on speed
 			ball.x += ball.v.x;
 			ball.y += ball.v.y;
 
-			//ball.x = clamp(ball.x,-50,totalSize+50);
-			//ball.y = clamp(ball.y,-50,totalSize+50);
 
-			//console.log("====================================================================================");
-			//console.log("loop","collided",ball.collide,"boost",ball.boostCpt);
-
-
-
+			//ball collisions (CAUTION: the following code is more about cuisine than physics)
 			ball.collide = false;
 			var prevVx = ball.v.x;
 			var prevVy = ball.v.y;
@@ -643,11 +552,13 @@ window.onload = function(){
 					if(e.shape==CIRCLE){
 
 						if(collideCircle(ball,e)){
+
+							//handle collision with monster
 							if(e.kind == MONSTER){
 								if(killMap[ball.elt] == e.elt){
 									//ball kills monster of opposite element
 									e.dead = true;
-									//ball.elt = -1;
+									//ball.elt = NO_ELEMENT;
 								}
 
 								if(e.dead || e.elt==ball.elt){
@@ -656,10 +567,11 @@ window.onload = function(){
 								}else{
 									if(e.elt != ball.elt){
 										//ball loses power on incompatible elements
-										ball.elt = -1;
+										ball.elt = NO_ELEMENT;
 									}
 								}
 							}
+
 							e.collide = true;
 							//compute vector going from entity center to ball center
 							collisionVector.x = ball.x- e.x;
@@ -673,17 +585,11 @@ window.onload = function(){
 
 						}
 					}else if(e.shape==LINE){
-						//console.log(i);
 
 						var risingPad = e.kind == PADDLE && e.movingUp;
 						if(!risingPad && collideLine(ball,e,collisionVector)){
+							//collision with a slope or an inactive paddle
 							e.collide = true;
-
-							/*
-							 if(e.kind==PADDLE && e.moving){
-							 console.log('collide moving pad');
-							 }
-							 */
 
 							//We need to check if ball passed through the line
 							// B is the ball center, E is the projection of B on the line entity
@@ -712,42 +618,35 @@ window.onload = function(){
 							collisionVector.l = l;
 						}
 						if(risingPad){
+							// Check collisions with moving pad differently
+							// I think I overcomplicated things and should have checked collision with pad before/pad after and ball before/ball after instead
+							// it is working correctly now, so no need to change it
+
+							//Do a normal collsion check with current position
 							var collide = collideLine(ball,e,collisionVector);
-							var reverse = (e.table==1 || e.table==3);
-							//console.log("rising paddle",e,reverse?"REVERSE":"");
+							var reverse = (e.elt==1 || e.elt==3);
 							var aboveBefore,aboveAfter;
 							if(!collide){
 								//No collision, but since the paddle moved, maybe the ball went through
 								//Check if we are between the two paddle position
-
 								computeLineEq(tempLineEq, e.x, e.y, e.prevX2, e.prevY2);
 								aboveBefore = checkAboveLineEq(tempLineEq,ball.prevX,ball.prevY, reverse);
 
-								//console.log(" before",0, 0,"and", e.prevX2-e.x, e.prevY2- e.y,aboveBefore,"m",tempLineEq.m,"p",tempLineEq.p);
-								//console.log(" ball before:",ball.prevX-e.x,ball.prevY-e.y);
-
 								computeLineEq(tempLineEq, e.x, e.y, e.x2, e.y2);
 								aboveAfter = checkAboveLineEq(tempLineEq,ball.x,ball.y, reverse);
-
-								//console.log(" after",0, 0,"and", e.x2-e.x, e.y2-e.y ,aboveAfter,"m",tempLineEq.m,"p",tempLineEq.p);
-								//console.log(" ball now:",ball.x-e.x,ball.y-e.y);
-
-							}else{
-								//console.log(" paddle direct collision");
 							}
 
 							if(collide || aboveBefore!==aboveAfter){
-								//if(!collide) console.log("  checking dotprod");
 								//ball center is between the two lines
 								var dx = ball.x-e.x;
 								var dy = ball.y- e.y;
 								var dotProd = dx*e._ux + dy* e._uy;
 								if(collide || dotProd>0){
-									//console.log("good side");
 									//ball center is on the good side of the pad pivot
 									if(collide || dx*dx+dy*dy < e.l* e.l ){
 										//ball center is inside pad circle
 										e.collide = true;
+
 										//project ball center on paddle
 										//DotProd = cos(angle)*|d|*|e.l|
 										var d = pyth(dx,dy);
@@ -768,9 +667,8 @@ window.onload = function(){
 										//Compute normale
 										var nx = e._uy/e.l;
 										var ny = -e._ux/e.l;
-										//console.log("   NORMALE PAD",nx,ny,e);
-										if(e.mirror && (e.table===0 || e.table==3) || !e.mirror && (e.table==1 || e.table==2)){
-											//if(e.mirror && !reverse || !e.mirror && reverse){
+										// multiply by -1 when it seems to be needed...
+										if(e.mirror && (e.elt===0 || e.elt==3) || !e.mirror && (e.elt==1 || e.elt==2)){
 											nx*=-1;
 											ny*=-1;
 										}
@@ -785,50 +683,46 @@ window.onload = function(){
 										collisionVector.l = collisionVector.l + ball.r;
 										//console.log("went through moving paddle",collisionVector.x,collisionVector.y,collisionVector.l);
 
-										//we handle collision in a different way for moving paddle
+										// We now have a collisionVector and need to compute how ball velocity should be affected
+
+										//first, move ball out of the paddle
+										//(results in a "sticky" paddle effect which is a little annoying but better than the ball passing through the paddle)
 										ball.x += collisionVector.x * collisionVector.l;
 										ball.y += collisionVector.y * collisionVector.l;
 										ball.collide = true;
 
-										//boost is proportional to the distance between the pad pivot and ball contact point
+										//apply a speed boost proportional to the distance between the pad pivot and ball contact point
+										// 0 at the pivot, 1 at the edge
 										var boostRatio = dproj/e.l;
-										//boost ratio roughtly 0..1
-										//make it more interesting going to the edge of the pad
-										boostRatio = 0.2+(0.3*boostRatio+0.7*boostRatio*boostRatio); //interpolate somewhere between y=x and y=x^2
+										// make it less linear to make the boost more important on the edge
+										boostRatio = 0.1+0.9*(0.3*boostRatio+0.7*boostRatio*boostRatio); //interpolate somewhere between y=x and y=x^2
 
-										var boostCpt = (boostRatio*8) >> 0;
-										var speed = maxSpeed*boostRatio; //reach 60% of max speed
-										/*
-										 if(!ball.boostCpt){
-										 //initial boost is proportionnal to ball velocity
-										 var ballSpeed = pyth(ball.v.x,ball.v.y);
-										 ballSpeed/=freeFallSpeed;
-										 if(ballSpeed>1) ballSpeed = 1; //just in case
-										 console.log("INTIAL BOOST",ballSpeed);
-										 speed += 0.4*ballSpeed;
-
-										 }
-										 */
+										//Compute boost
+										var boostCpt = MIN_BOOST_CPT + (boostRatio*BOOST_CPT_BONUS) >> 0;
+										var speed = MIN_BOOST_SPEED + BOOST_SPEED_BONUS*boostRatio; //reach 60% of max speed
 										var boostX = collisionVector.x*speed;
 										var boostY = collisionVector.y*speed;
 
 										if(!ball.boostCpt){
+											//initial boost
+											console.log("=============");
 											ball.boostCpt = boostCpt;
 											ball.boostX = boostX;
 											ball.boostY = boostY;
 										}else{
-											//add a part of previous boost (give priority to initial impact
-											ball.boostCpt += boostCpt>2 ? 2 : boostCpt;
-											ball.boostX = 0.2*boostX + ball.boostX*0.8;
-											ball.boostY = 0.2*boostY + ball.boostY*0.8;
+											//add a part of previous boost (give big priority to initial impact)
+											ball.boostCpt = boostCpt;
+											ball.boostX = 0.2*boostX + ball.boostX;
+											ball.boostY = 0.2*boostY + ball.boostY;
 										}
-										ball.boostX *= (0.6+rand()*0.8); //randomize a little to avoid trajectories too often the same
-										ball.boostY *= (0.6+rand()*0.8);
+										console.log("boostRatio",boostRatio,ball.boostCpt,"=>",ball.boostX,ball.boostY);
 
-										//console.log("   boosting",boostRatio,ball.boostCpt,ball.boostX,ball.boostY);
+										//randomize a little to avoid trajectories too often the same
+										ball.boostX *= (0.8+rand()*0.4);
+										ball.boostY *= (0.8+rand()*0.4);
 
-										ball.elt = e.table;
-
+										ball.elt = e.elt;
+										canBoost = true;
 										continue;
 									}
 								}
@@ -836,16 +730,15 @@ window.onload = function(){
 						}
 					}
 					if(e.collide){
-						e.colCpt = 20;
+
+						ball.collide = true;
+						e.colCpt = 20; //used to change color on collided bumpers
 
 						//collisonVector is the the normalized vector indicating how much we need to move the ball in order to remove collision
 						// => move out of collision
 						ball.x += collisionVector.x * collisionVector.l;
 						ball.y += collisionVector.y * collisionVector.l;
 
-
-						ball.collide = true;
-						//console.log("collide before",collisonVector.x,collisonVector.y,collisonVector.l);
 						//now we want to compute how velocity is affected
 						//normalize ball velocity vector
 						var vl = pyth(ball.v.x,ball.v.y);
@@ -872,6 +765,7 @@ window.onload = function(){
 						var bounciness =  0.2;
 						if(e.kind==BUMPER){
 							bounciness = 1.3;
+							canBoost = true;
 						}else if(e.kind==MONSTER){
 							if(e.elt==ball.elt){
 								bounciness = 1.5;
@@ -879,56 +773,17 @@ window.onload = function(){
 								bounciness = 0.5;
 							}
 						}
-
 						collisionVector.x *= cos * bounciness * vl;
 						collisionVector.y *= cos * bounciness * vl;
 						normaleX *= sin * vl;
 						normaleY *= sin * vl;
-
-
 						ball.v.x = collisionVector.x + normaleX;
 						ball.v.y = collisionVector.y + normaleY;
-
-						//console.log("collide",ball, e.shape,e);
 					}
 				}
 			}
-			ball.a.x = ball.a.y = 0;
 			ball.prevX = ball.x;
 			ball.prevY = ball.y;
-
-			//console.log("ball speed:",ball.v.y);
-			if(ball.x+ballRadius<0){
-				started = false;
-			}else if(ball.x-ballRadius>totalSize){
-				started = false;
-			}else if(ball.y+ballRadius<0){
-				started = false;
-			}else if(ball.y-ballRadius>totalSize){
-				started = false;
-			}
-		}
-
-		var shot;
-		//move shots
-		for(i=0 , len=shots.n ; i<len ; i++){
-			shot = shots[i];
-			shot.cpt--;
-			if(shot.cpt>0){
-				shot.x += shot.v.x;
-				shot.y += shot.v.y;
-			}
-		}
-		//remove finished shots
-		for(i=0 ; i<shots.n ; i++){
-			shot = shots[i];
-			if(shot.cpt===0){
-				//Swap shots
-				shots[i] = shots[shots.n-1];
-				shots[shots.n-1] = shot;
-				shots.n--;
-				i--;
-			}
 		}
 	}
 
@@ -1001,7 +856,7 @@ window.onload = function(){
 
 
 	function render(){
-		var drawFx = 1;
+		var drawFx = started;
 		clearCanvas(renderCtx);
 		clearCanvas(entityCtx);
 
@@ -1020,11 +875,16 @@ window.onload = function(){
 			clearCanvas(renderCtx);
 
 			if(ball.boostCpt>0){
-				//drawCircle(fxCtx,ball.x-cameraX,ball.y-cameraY,6, "orange");
+				//Draw boost afterburner
 				drawCircle(fxCtx,ball.prevX-cameraX,ball.prevY-cameraY,6, ELT_COLORS[ball.elt][1]);
 			}else{
-				drawCircle(fxCtx,ball.x-cameraX,ball.y-cameraY,2, ELT_COLORS[ball.elt][1]);
+				if(canBoost){
+					//boost is ready
+					drawCircle(fxCtx,ball.x-cameraX,ball.y-cameraY,2, ELT_COLORS[ball.elt][1]);
+				}
 			}
+		}else{
+			clearCanvas(fxCtx);
 		}
 
 
@@ -1040,38 +900,62 @@ window.onload = function(){
 			var y = e.y-cameraY;
 			var fill, stroke, lineWidth;
 			if(e==ball){
-				if(startCpt>0 && !started){
-					var shake = clamp(startCpt/startCptMax,0,1)*4 >>0;
-					x += shake*rand() >> 0;
-					y += shake*rand() >> 0;
-					if(shake==4){
-						stroke = "#f00";
-					}
+				//mouth orientation
+				var angle;
+				if(!started){
+					angle = ball.sa;
+					startPulse+=0.05;
+				}else{
+					angle = Math.atan2(ball.v.y,ball.v.x);
+					startPulse = 0;
 				}
 
-				//draw camembert
-				var angle = Math.atan2(ball.v.y,ball.v.x);
+				//mouth open angle and direction
 				ball.cpt = (++ball.cpt)%20;
 				var dAngle = ball.cpt;
 				if(dAngle>10) dAngle = 20-dAngle;
+				if(!started){
+					//while starting, mouth open angle depends on the current boost power
+					dAngle = 2+8*(startCpt/START_CPT_MAX) >>0 ;
+					//mouth orientation changes with time
+					angle += Math.cos(startPulse)*PI/3;
+					startAngle = angle; //it defines the boost direction
+				}
+				dAngle *= 0.3*PI/10;
 
+				//Shake when starting
+				dx = 0;
+				dy = 0;
+				if(startCpt>0 && !started){
+					var shake = clamp(startCpt/START_CPT_MAX,0,1)*4 >>0;
+					dx = shake*rand() >> 0;
+					dy = shake*rand() >> 0;
+				}
 
+				//draw camembert
 				stroke = ELT_COLORS[ball.elt][1];
 				fill = ELT_COLORS[ball.elt][0];
-
 				if(dAngle===0){
-					drawCircle(entityCtx,ball.x-cameraX,ball.y-cameraY,ballRadius,fill,stroke);
+					drawCircle(entityCtx,
+						ball.x-cameraX +dx,
+						ball.y-cameraY +dy,
+						BALL_RADIUS,fill,stroke);
 				}else{
 					style(entityCtx,fill,stroke,2);
-					dAngle *= 0.3*PI/10;
 					entityCtx.beginPath();
-					entityCtx.arc(ball.x-cameraX,ball.y-cameraY,ball.r,angle+dAngle,angle-dAngle);
-					entityCtx.lineTo(ball.x-cameraX,ball.y-cameraY);
+					entityCtx.arc(
+						ball.x-cameraX +dx,
+						ball.y-cameraY +dy,
+						ball.r,	angle+dAngle, angle-dAngle);
+					entityCtx.lineTo(
+						ball.x-cameraX +dx,
+						ball.y-cameraY +dy);
 					entityCtx.closePath();
 					entityCtx.fill();
 					entityCtx.stroke();
 				}
 			}else if(e.shape == CIRCLE){
+				//Bumper or monster
 				if(e.kind==BACKGROUND){
 					fill = 0;
 					stroke = 0;
@@ -1088,22 +972,19 @@ window.onload = function(){
 					drawCircle(entityCtx,x,y, e.r,fill,stroke, lineWidth);
 				}
 			}else if(e.shape == LINE){
-				if(e.kind==BACKGROUND){
-					stroke = 0;
-				}else{
+				if(e.kind!=BACKGROUND){ //side walls are dawn in background
 					stroke = WALL_COLOR;
-
 					if(e.kind==PADDLE){
-						stroke = ELT_COLORS[e.table][1];
+						stroke = ELT_COLORS[e.elt][1];
 						/*
 						if(e.collide){
 							stroke = COLLIDE_COLOR;
 						}
 						*/
 					}
-				}
-				if(stroke){
-					drawLine(entityCtx, e.x-cameraX, e.y-cameraY, e.x2-cameraX, e.y2-cameraY,stroke,2);
+					if(stroke){
+						drawLine(entityCtx, e.x-cameraX, e.y-cameraY, e.x2-cameraX, e.y2-cameraY,stroke,2);
+					}
 				}
 
 				/*
@@ -1115,6 +996,7 @@ window.onload = function(){
 			}
 		}
 
+		//draw monsters
 		for(i=0 ; i<monsters.n ; i++){
 			var a = 1;
 			var m = monsters[i];
@@ -1123,10 +1005,12 @@ window.onload = function(){
 			var vulnerable = killMap[ball.elt] == m.elt;
 			var same = ball.elt == m.elt;
 
+
 			if(m.dead){
+				//dead monster
 				m.cpt-=10;
 				if(m.cpt===0){
-					//remove entity (swap with the end of the list)
+					//remove dead monster (swap with the end of the list)
 					a = monsters[monsters.n-1];
 					monsters[i] = a;
 					monsters[monsters.n-1] = m;
@@ -1134,16 +1018,18 @@ window.onload = function(){
 					i--;
 					continue;
 				}else{
+					//Fade out
 					a = m.cpt/50;
 				}
 			}else{
 				if(m.cpt<50){
+					//Fade in monster
 					m.cpt++;
 					a = m.cpt/50;
 				}
 			}
-			//console.log(m.dead, m.cpt,a);
 
+			//Draw halo for elements that are collidable
 			if(!same){
 				entityCtx.globalAlpha = 0.2*a;
 				drawCircle(entityCtx, m.x-cameraX, m.y-cameraY, m.r,ELT_COLORS[m.elt][0]);
@@ -1154,64 +1040,45 @@ window.onload = function(){
 					entityCtx.globalCompositeOperation = "source-over";
 				}
 			}
-			if(same){
-				//Same elment is faded out
-				a *= 0.5;
-			}
+
+			//Apply cpt fade for basic destroy/appear fade
 			entityCtx.globalAlpha = a;
 
-			dx = 0;
-			dy = 0;
 			if(!vulnerable && !same){
 				//incompatible element have a border
 				drawCircle(entityCtx, m.x-cameraX, m.y-cameraY, m.r,null,ELT_COLORS[m.elt][0]);
 			}
+
+			dx = 0;
+			dy = 0;
 			if(vulnerable){
 				//Shake in fear !
 				dx = 3*(Math.random()-0.5);
 				dy = 3*(Math.random()-0.5);
 			}
-			//entityCtx.globalCompositeOperation = "destination-out ";
+
+			if(!vulnerable){
+				//non targetable element are faded out
+				entityCtx.globalAlpha = a * 0.5;
+			}
+
 			entityCtx.drawImage(monsterCanvas,
 				m.elt*size,0,size,size,
 				m.x-size/2 - cameraX + dx, m.y-size/2 - cameraY + dy,size,size
 			);
-			//entityCtx.globalCompositeOperation = "source-over";
 
 			//drawCircle(entityCtx, m.x-cameraX, m.y-cameraY, m.r,null,ELT_COLORS[m.elt][0]);
 		}
 		entityCtx.globalAlpha = 1;
 
-		/*
-		var shot;
-		//draw shots
-		for(i=0 , len=shots.n ; i<len ; i++){
-			shot = shots[i];
-			//drawLine(renderCtx, shot.x-cameraX, shot.y-cameraY, shot.x-shot.v.x-cameraX, shot.y-shot.v.y-cameraY,SHOT_COLOR,10);
-			drawCircle(entityCtx, shot.x-cameraX, shot.y-cameraY, 4,SHOT_COLOR);
-			if(drawFx) drawLine(fxCtx, shot.x-cameraX, shot.y-cameraY, shot.x-shot.v.x-cameraX, shot.y-shot.v.y-cameraY,SHOT_COLOR,2);
-
-			//drawCircle(fxCtx, shot.x-cameraX, shot.y-cameraY, 2, SHOT_COLOR);
-			//drawCircle(fxCtx, shot.x-shot.v.x-cameraX, shot.y-shot.v.y-cameraY, 2, SHOT_COLOR);
-		}
-		*/
-
-		/*
-		 //Draw velocity vector
-		 drawLine(entityCtx,
-		 ball.x-cameraX,
-		 ball.y-cameraY,
-		 ball.x-cameraX + ball.v.x*10,
-		 ball.y-cameraY + ball.v.y*10,
-		 "#0f0",3);
-		 */
-
+		//compose final rendering
 		drawImage(renderCtx, bgCanvas, -cameraX, -cameraY);
 		if(drawFx) drawImage(renderCtx, fxCanvas, 0, 0);
 		drawImage(renderCtx, entityCanvas, 0, 0);
 	}
 
 	function updateGameWorld(){
+		//make sure we always have enough monsters
 		var nMonsters = 4;
 		while(monsters.n<nMonsters){
 			var monster;
@@ -1235,10 +1102,40 @@ window.onload = function(){
 			monster.d = bumper.d;
 		}
 
+		//Detect ball out of screen ie player losing
+		//bring back to the screen and prepare start sequence
+		var stop = false;
+		if(ball.x+BALL_RADIUS<0){
+			stop = true;
+			ball.x = 50;
+			ball.y = halfSize;
+			ball.sa = 0; //define starting angle
+		}else if(ball.x-BALL_RADIUS>totalSize){
+			stop = true;
+			ball.x = totalSize-50;
+			ball.y = halfSize;
+			ball.sa = -PI;
+		}else if(ball.y+BALL_RADIUS<0){
+			stop = true;
+			ball.y = 50;
+			ball.x = halfSize;
+			ball.sa = PI/2;
+		}else if(ball.y-BALL_RADIUS>totalSize){
+			stop = true;
+			ball.y = totalSize-50;
+			ball.x = halfSize;
+			ball.sa = -PI/2;
+		}
+		if(stop){
+			started = false;
+			startCpt = 0;
+			ball.elt = NO_ELEMENT;
+		}
 	}
 
 	function tic(){
-		if(stb) stb();
+
+		if(stb) stb(); // Stats plugin for debug
 
 		processInput();
 		updatePhysics();
@@ -1246,13 +1143,10 @@ window.onload = function(){
 		render();
 		updateGameWorld();
 
-		window.requestAnimationFrame(tic);
-		//setTimeout(tic,1000);
-
 		if(ste) ste();
+
+		window.requestAnimationFrame(tic);
 	}
-
-
 	init();
 	tic();
 
@@ -1260,18 +1154,21 @@ window.onload = function(){
 	// entity functions
 	//------------------------------------------------------------------------------------------------------------------
 
+	//builds all objects that are are never added/removed during game
 	function buildObjects(){
 
-		ball = addEntity( makeCircle(halfSize, totalSize-50, ballRadius, BALL));
+		//Create ball
+		canBoost = false;
+		ball = addEntity( makeCircle(halfSize, totalSize-50, BALL_RADIUS, BALL));
+		ball.v = {x: 0 , y:0};
 		ball.cpt = 0;
-		ball.elt = -1;
-		//ball = addEntity( makeCircle(400, halfSize-80, ballRadius, BALL));
+		ball.elt = NO_ELEMENT;
+		ball.sa = -PI/2;
 
+		//side slopes
 		addMultipleAndMirror( makeLine(0,220,150,100,OBSTACLE));
 
-
-		//addMultipleAndMirror( makeCircle(70,260,30,BUMPER));
-		//Create moving obstacles
+		//moving bumpers
 		movingBumpers = [];
 		var n = 4;
 		for(var i=0 ; i<n ; i++){
@@ -1286,7 +1183,6 @@ window.onload = function(){
 			bumper.da = speed/dist;
 			bumper.a = angle;
 			bumper.d = dist;
-			//console.log(bumper,speed);
 
 			if(i>1){
 				//Add mirror bumpers on edges
@@ -1299,10 +1195,7 @@ window.onload = function(){
 		//addMultiple( makeCircle(600,400,30,BUMPER));
 		//addMultiple( makeCircle(300,600,30,BUMPER));
 
-
-		//addMultipleAndMirror( makeLine(100,450,200,450,OBSTACLE));
-
-
+		//Paddles
 		addMultipleAndMirror( makeLine(150,100,300,30,PADDLE));
 		pads = entities.slice(-8);
 		var pad = pads[0];
@@ -1314,7 +1207,7 @@ window.onload = function(){
 			pad.ux = pad.x2-pad.x;
 			pad.uy = pad.y2-pad.y;
 			pad.amax = padSpreadAngle;
-			if(pad.table==1 || pad.table==2) pad.amax*=-1;
+			if(pad.elt==1 || pad.elt==2) pad.amax*=-1;
 		}
 		//DEBUG single PAD
 		//pads = [pads[1]];
@@ -1324,19 +1217,11 @@ window.onload = function(){
 
 	function makeEntity(shape,kind, x, y){
 		return {
-			x: x || 0, y: y || 0, shape:shape , kind:kind,
-			v: {x:0, y:0},
-			a: {x:0, y:0}
-		};
+			x: x || 0, y: y || 0, shape:shape , kind:kind };
 	}
 	function addEntity(e){
 		entities.push(e);
 		return e;
-	}
-	function removeEntity(e){
-		var index = entities.indexOf(e);
-		entities[index] = entities[entities.length-1];
-		entities.pop();
 	}
 
 	function makeCircle(x,y,r,kind){
@@ -1352,59 +1237,7 @@ window.onload = function(){
 		return l;
 	}
 
-	/*
-	 function addShape(data, kind){
-	 var items = [];
-	 var circle, line;
-	 for(var i= 0;i<data.pts.length;i++){
-	 var p = data.pts[i];
-	 circle = makeEntity(CIRCLE,"bump", p.x, p.y);
-	 circle.r = data.rs[i];
-	 items.push(circle);
-
-	 if(i>0){
-	 var p2 = data.pts[i-1];
-	 var r2 = data.rs[i-1];
-	 //compute perpendicular vector
-	 var dx = p.x-p2.x;
-	 var dy = p.y-p2.y;
-	 var n = pyth(dx,dy);
-	 var dx2 = -dy/n;
-	 var dy2 = dx/n;
-
-	 j=0;
-	 while(j<2){
-	 if(j==1){
-	 dx2 = -dx2;
-	 dy2 = -dy2;
-	 }
-	 line = makeEntity(LINE,"bump");
-	 line.r = 2;
-	 line.x = p.x + dx2*circle.r >> 0;
-	 line.y = p.y + dy2*circle.r >> 0;
-	 line.x2 = p2.x + dx2*r2 >> 0;
-	 line.y2 = p2.y + dy2*r2 >> 0;
-	 items.unshift(line);
-	 j++;
-	 }
-
-	 }
-
-	 }
-	 for(i=0 ; i<items.length ; i++){
-	 var entity = items[i];
-	 for(var j=0 ; j<4 ; j++){
-	 var clone = cloneObject(entity);
-	 convert(clone,"x","y",j);
-	 if(clone.shape==LINE){
-	 convert(clone,"x2","y2",j);
-	 }
-	 addEntity(clone);
-	 }
-	 }
-	 }
-	 */
-
+	//Add an entity, duplicating it on the 4 sides
 	function addMultiple(entity){
 		for(var j=0 ; j<4 ; j++){
 			var clone = cloneObject(entity);
@@ -1413,19 +1246,23 @@ window.onload = function(){
 				convert(clone,"x2","y2",j);
 			}
 			addEntity(clone);
-			clone.table = j;
+			clone.elt = j;
 		}
 	}
 	function addMultipleAndMirror(entity){
 		addMultiple(entity);
+
+		//create mirror entity
 		entity.x = tableWidth-entity.x;
 		if(entity.shape==LINE){
 			entity.x2 = tableWidth-entity.x2;
 		}
 		entity.mirror = true;
+		//and multiply it
 		addMultiple(entity);
 	}
 
+	//tries to be clever converting positions from one table to the other
 	function convert(e,xProp,yProp,side){
 		var x = e[xProp];
 		var y = e[yProp];
@@ -1561,6 +1398,7 @@ window.onload = function(){
 		return canvas.getContext("2d");
 	}
 
+	//set values to 0 if you don't want to change them, null if you want to reset them
 	function style(ctx, fill,stroke,lineWidth){
 		if(fill!==0) ctx.fillStyle = fill;
 		if(stroke!==0) ctx.strokeStyle = stroke;
