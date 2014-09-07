@@ -19,20 +19,24 @@ window.onload = function(){
 	// sizes and DOM
 	//------------------------------------------------------------------------------------------------------------------
 
-	var tableWidth = 700;
-	var tableHeight = 220;
-	var cornerRadius = 200;
-	var centerRadius = cornerRadius + tableWidth/2;
-	centerRadius = pyth(centerRadius,centerRadius) - cornerRadius >> 0;
+	var TABLE_WIDTH = 700;
+	var TABLE_HEIGHT = 220;
+	var CORNER_RADIUS = 200;
+	var BUMPER_ZONE_RADIUS = CORNER_RADIUS + TABLE_WIDTH/2;
+	BUMPER_ZONE_RADIUS = pyth(BUMPER_ZONE_RADIUS,BUMPER_ZONE_RADIUS) - CORNER_RADIUS >> 0;
+	var RING_ZONE_RADIUS = (TABLE_WIDTH/2+pyth(TABLE_WIDTH/2,TABLE_WIDTH/2))/2; //some arbitrary radius
+	var TOTAL_SIZE = TABLE_WIDTH + 2*TABLE_HEIGHT + 2*CORNER_RADIUS;
+	var HALF_SIZE = TOTAL_SIZE/2;
+	var TILE_SIZE = 20;
+
 	var screenWidth;
 	var screenHeight;
 	var screenMinSize;
 
-	var totalSize = tableWidth + 2*tableHeight + 2*cornerRadius;
-	var halfSize = totalSize/2;
-	var tileSize = 20;
+	var MONSTER_SPRITE_MARGIN = 4;
+	var MONSTER_SPRITE_SIZE = 40;
 
-	var bgCanvas = makeCanvas(totalSize, totalSize);
+	var bgCanvas = makeCanvas(TOTAL_SIZE, TOTAL_SIZE);
 	var bgCtx = getContext(bgCanvas);
 
 	var renderCanvas = makeCanvas();
@@ -44,10 +48,6 @@ window.onload = function(){
 	var entityCanvas = makeCanvas();
 	var entityCtx = getContext(entityCanvas);
 
-	var MONSTER_SPRITE_MARGIN = 4;
-	var MONSTER_SPRITE_SIZE = 40;
-	var MONSTER_RADIUS = MONSTER_SPRITE_SIZE-2;
-
 	var monsterCanvas = makeCanvas(4*(MONSTER_SPRITE_SIZE+2*MONSTER_SPRITE_MARGIN),MONSTER_SPRITE_SIZE+2*MONSTER_SPRITE_MARGIN);
 	var monsterCtx = getContext(monsterCanvas);
 
@@ -57,8 +57,8 @@ window.onload = function(){
 	var prevCameraY;
 
 	window.onresize = function(){
-		screenWidth = clamp(win.innerWidth,tableWidth,totalSize);
-		screenHeight = clamp(win.innerHeight,tableWidth,totalSize);
+		screenWidth = clamp(win.innerWidth,TABLE_WIDTH,TOTAL_SIZE);
+		screenHeight = clamp(win.innerHeight,TABLE_WIDTH,TOTAL_SIZE);
 		screenMinSize = Math.min(screenWidth,screenHeight);
 		entityCanvas.width = fxCanvas.width = renderCanvas.width = screenWidth = screenWidth-screenWidth%2;
 		entityCanvas.height = fxCanvas.height = renderCanvas.height = screenHeight = screenHeight-screenHeight%2;
@@ -79,45 +79,47 @@ window.onload = function(){
 	var WALL_COLOR = "#08e";//"#ddd";
 	var VOID_COLOR = "#000";
 	var COLLIDE_COLOR = "#0d0";
+	var DANGER_COLOR = "#f02";
 
-	var ELT_COLORS = [
+
+	var ELEMENT_COLORS = [
 		//WATER
 		["#aef","#5af"],
 		//FIRE
 		["#fa0","#f53"],
 		//EARTH
-		["#a64","#864"],
+		["#a64","#864" , "#fd7"],
 		//AIR
-		["rgba(255,255,255,0.5","#fff"],
+		["rgba(255,255,255,0.5","#fff" , "#fff"],
 		//NO ELEMENT
 		["#ff6","#555"]
 	];
 
 	function buildBackground(){
-		var tempCanvas = makeCanvas(tileSize, tileSize);
+		var tempCanvas = makeCanvas(TILE_SIZE, TILE_SIZE);
 		var tempCtx = getContext(tempCanvas);
 
 		//checkboard pattern
-		fillRect(tempCtx,0,0,tileSize,tileSize,TILE_LINE_COLOR); //"#fff");
-		fillRect(tempCtx,0,0,tileSize-1,tileSize-1,TILE_LINE_COLOR_2); //"#eee");
-		fillRect(tempCtx,0,0,tileSize-2,tileSize-2,TILE_FILL_COLOR); //"#f8f8f8");
-		fillRect(bgCtx,0,0,totalSize,totalSize, tempCanvas);
+		fillRect(tempCtx,0,0,TILE_SIZE,TILE_SIZE,TILE_LINE_COLOR); //"#fff");
+		fillRect(tempCtx,0,0,TILE_SIZE-1,TILE_SIZE-1,TILE_LINE_COLOR_2); //"#eee");
+		fillRect(tempCtx,0,0,TILE_SIZE-2,TILE_SIZE-2,TILE_FILL_COLOR); //"#f8f8f8");
+		fillRect(bgCtx,0,0,TOTAL_SIZE,TOTAL_SIZE, tempCanvas);
 
 		//element overlay
 		bgCtx.globalAlpha = 0.1;
-		fillRect(bgCtx,0,totalSize-tableHeight-2,totalSize,tableHeight,ELT_COLORS[WATER][1]);//WATER
-		fillRect(bgCtx,totalSize-tableHeight-2,0,tableHeight,totalSize,ELT_COLORS[FIRE][1]);//FIRE
-		fillRect(bgCtx,0,0,totalSize,tableHeight,ELT_COLORS[EARTH][1]);//EARTH
-		fillRect(bgCtx,0,0,tableHeight,totalSize,ELT_COLORS[AIR][1]);//AIR
+		fillRect(bgCtx,0,TOTAL_SIZE-TABLE_HEIGHT-2,TOTAL_SIZE,TABLE_HEIGHT,ELEMENT_COLORS[WATER][1]);//WATER
+		fillRect(bgCtx,TOTAL_SIZE-TABLE_HEIGHT-2,0,TABLE_HEIGHT,TOTAL_SIZE,ELEMENT_COLORS[FIRE][1]);//FIRE
+		fillRect(bgCtx,0,0,TOTAL_SIZE,TABLE_HEIGHT,ELEMENT_COLORS[EARTH][1]);//EARTH
+		fillRect(bgCtx,0,0,TABLE_HEIGHT,TOTAL_SIZE,ELEMENT_COLORS[AIR][1]);//AIR
 		bgCtx.globalAlpha = 1;
 		bgCtx.globalCompositeOperation = "source-over";
 
 		//diagonal lines
 		style(bgCtx,TILE_FILL_COLOR,TILE_LINE_COLOR_3,2);
-		drawLine(bgCtx,0,0,totalSize,totalSize);
-		drawLine(bgCtx,totalSize,0,0,totalSize);
+		drawLine(bgCtx,0,0,TOTAL_SIZE,TOTAL_SIZE);
+		drawLine(bgCtx,TOTAL_SIZE,0,0,TOTAL_SIZE);
 		//middle circle
-		drawCircle(bgCtx,halfSize,halfSize,8, YES,YES);
+		drawCircle(bgCtx,HALF_SIZE,HALF_SIZE,8, YES,YES);
 		//drawCircle(bgCtx,halfSize,halfSize,centerRadius,null,TILE_LINE_COLOR_3,1);
 
 		var upChar = 0x21e7;
@@ -131,39 +133,39 @@ window.onload = function(){
 			style(bgCtx,VOID_COLOR,WALL_COLOR,2);
 			bgCtx.beginPath();
 			bgCtx.moveTo( x(-m), y(-m) );
-			bgCtx.lineTo( x(tableHeight+cornerRadius), y(-m) );
-			bgCtx.lineTo( x(tableHeight+cornerRadius), y(tableHeight) );
-			bgCtx.arcTo ( x(tableHeight+cornerRadius), y(tableHeight+cornerRadius),
-				x(tableHeight), y(tableHeight+cornerRadius), cornerRadius);
-			bgCtx.lineTo( x(-m), y(tableHeight+cornerRadius) );
+			bgCtx.lineTo( x(TABLE_HEIGHT+CORNER_RADIUS), y(-m) );
+			bgCtx.lineTo( x(TABLE_HEIGHT+CORNER_RADIUS), y(TABLE_HEIGHT) );
+			bgCtx.arcTo ( x(TABLE_HEIGHT+CORNER_RADIUS), y(TABLE_HEIGHT+CORNER_RADIUS),
+				x(TABLE_HEIGHT), y(TABLE_HEIGHT+CORNER_RADIUS), CORNER_RADIUS);
+			bgCtx.lineTo( x(-m), y(TABLE_HEIGHT+CORNER_RADIUS) );
 			bgCtx.closePath();
 			bgCtx.fill();
 			bgCtx.stroke();
 
 			//add wall entities
-			addEntity( makeCircle( x(tableHeight), y(tableHeight), cornerRadius,BACKGROUND) );
-			addEntity( makeLine( x(0), y(tableHeight+cornerRadius), x(tableHeight), y(tableHeight+cornerRadius), BACKGROUND ) );
-			addEntity( makeLine( x(tableHeight+cornerRadius), y(0), x(tableHeight+cornerRadius), y(tableHeight), BACKGROUND ) );
+			addEntity( makeCircle( x(TABLE_HEIGHT), y(TABLE_HEIGHT), CORNER_RADIUS,BACKGROUND) );
+			addEntity( makeLine( x(0), y(TABLE_HEIGHT+CORNER_RADIUS), x(TABLE_HEIGHT), y(TABLE_HEIGHT+CORNER_RADIUS), BACKGROUND ) );
+			addEntity( makeLine( x(TABLE_HEIGHT+CORNER_RADIUS), y(0), x(TABLE_HEIGHT+CORNER_RADIUS), y(TABLE_HEIGHT), BACKGROUND ) );
 
 			//draw arrows
 			var char_ = x==identity ? leftChar : rightChar;
 			bgCtx.font = "64px sans-serif";
 			bgCtx.textAlign="center";
 			bgCtx.textBaseline="middle";
-			style(bgCtx,ELT_COLORS[t1][1]);
-			bgCtx.fillText(toChar(char_),x(tableHeight+cornerRadius+130)-2,y(50)-3);
-			style(bgCtx,ELT_COLORS[t2][1]);
+			style(bgCtx,ELEMENT_COLORS[t1][1]);
+			bgCtx.fillText(toChar(char_),x(TABLE_HEIGHT+CORNER_RADIUS+130)-2,y(50)-3);
+			style(bgCtx,ELEMENT_COLORS[t2][1]);
 			char_ = y==identity ? upChar : downChar;
-			bgCtx.fillText(toChar(char_),x(50)-2,y(tableHeight+cornerRadius+130)-3);
+			bgCtx.fillText(toChar(char_),x(50)-2,y(TABLE_HEIGHT+CORNER_RADIUS+130)-3);
 
 			//draw element text
 			bgCtx.font = "16px sans-serif";
 			bgCtx.textAlign="center";
 			bgCtx.textBaseline="middle";
-			style(bgCtx,ELT_COLORS[t1][1]);
-			bgCtx.fillText(ELEMENT_TEXTS[t1],x(tableHeight+cornerRadius+30),y(12));
-			style(bgCtx,ELT_COLORS[t2][1]);
-			bgCtx.fillText(ELEMENT_TEXTS[t2],x(16),y(tableHeight+cornerRadius+12));
+			style(bgCtx,ELEMENT_COLORS[t1][1]);
+			bgCtx.fillText(ELEMENT_TEXTS[t1],x(TABLE_HEIGHT+CORNER_RADIUS+30),y(12));
+			style(bgCtx,ELEMENT_COLORS[t2][1]);
+			bgCtx.fillText(ELEMENT_TEXTS[t2],x(16),y(TABLE_HEIGHT+CORNER_RADIUS+12));
 		}
 		buildSide(identity,identity,2,3);
 		buildSide(identity,mirror,0,3);
@@ -305,6 +307,9 @@ window.onload = function(){
 	killMap[EARTH] = AIR;
 	killMap[AIR] = EARTH;
 
+	var MONSTER_RADIUS = 38;
+	var BALL_RADIUS = 14;
+	var RING_RADIUS = 6;
 
 	//ball,walls,slopes,padles (everything that isn't added/removed)
 	var entities;
@@ -313,9 +318,6 @@ window.onload = function(){
 	var ball;
 	var pads;
 	var movingBumpers;
-
-	var BALL_RADIUS = 14;
-	var RING_RADIUS = 6;
 
 	//Start seq via right button
 	var started = false;
@@ -474,8 +476,8 @@ window.onload = function(){
 			}
 			e.a += e.da;
 			//moving bumper
-			e.x = halfSize+Math.cos(e.a)* e.d;
-			e.y = halfSize+Math.sin(e.a)* e.d;
+			e.x = HALF_SIZE+Math.cos(e.a)* e.d;
+			e.y = HALF_SIZE+Math.sin(e.a)* e.d;
 		}
 
 		//Update ball physics
@@ -486,8 +488,8 @@ window.onload = function(){
 			var gravity = GRAVITY;
 			var maxSpeed = MAX_SPEED;
 			//distance to screen center
-			dx = halfSize - ball.x;
-			dy = halfSize - ball.y;
+			dx = HALF_SIZE - ball.x;
+			dy = HALF_SIZE - ball.y;
 			var range = screenWidth/2;
 			var distanceToCenter = pyth(dx,dy);
 			if(distanceToCenter < range){
@@ -500,8 +502,8 @@ window.onload = function(){
 			}
 
 			//applied gravity depends on which quadrant the ball is in
-			var x = ball.x - halfSize,
-				y = ball.y - halfSize;
+			var x = ball.x - HALF_SIZE,
+				y = ball.y - HALF_SIZE;
 
 			if(y>x){ //bottom left
 				if(y>-x){ //bottom right
@@ -564,8 +566,8 @@ window.onload = function(){
 									//ball.elt = NO_ELEMENT;
 								}
 
-								if(e.dead || e.elt==ball.elt){
-									//no collision with same element or dead element
+								if(e.dead /*e.elt==ball.elt*/){
+									//no collision with dead element
 									continue;
 								}else{
 									if(e.elt != ball.elt){
@@ -843,15 +845,15 @@ window.onload = function(){
 		var x = ball.x;
 		var y = ball.y;
 		//change origin to screen center
-		var ox = x-halfSize;
-		var oy = y-halfSize;
+		var ox = x-HALF_SIZE;
+		var oy = y-HALF_SIZE;
 
 		var absox = ox;
 		var absoy = oy;
 		if(absox<0) absox*=-1;
 		if(absoy<0) absoy*=-1;
 
-		var range = tableWidth/2 + cornerRadius;
+		var range = TABLE_WIDTH/2 + CORNER_RADIUS;
 		if(absox<range && absoy<range){
 			//We are inside the center square
 			//change origin to the table corner instead
@@ -869,23 +871,23 @@ window.onload = function(){
 				if(ox<0) x = -x;
 				if(oy<0) y = -y;
 				//convert back to world coordinates
-				x = halfSize + x;
-				y = halfSize + y;
+				x = HALF_SIZE + x;
+				y = HALF_SIZE + y;
 			}//else outside the circle, means close enough to the center, no snapping
 		}else{
 			//Snap to closest line
 			if(absox<absoy){
-				x=halfSize;
+				x=HALF_SIZE;
 			}else{
-				y=halfSize;
+				y=HALF_SIZE;
 			}
 		}
 		//make sure ball stays close to the center
 		x = clamp(x, ball.x - screenWidth*0.3, ball.x + screenWidth *0.3);
 		y = clamp(y, ball.y - screenHeight*0.3, ball.y + screenHeight *0.3);
 		//stay within scene bounds
-		x = clamp(x - screenWidth/2, 0, totalSize-screenWidth);
-		y = clamp(y - screenHeight/2, 0, totalSize-screenHeight);
+		x = clamp(x - screenWidth/2, 0, TOTAL_SIZE-screenWidth);
+		y = clamp(y - screenHeight/2, 0, TOTAL_SIZE-screenHeight);
 
 		if(started){
 			//smooth transition to ideal position
@@ -917,7 +919,7 @@ window.onload = function(){
 			//clean render again
 			clearCanvas(renderCtx);
 
-			style(fxCtx, ELT_COLORS[ball.elt][1]);
+			style(fxCtx, ELEMENT_COLORS[ball.elt][1]);
 			if(ball.boostCpt>0){
 				//Draw boost afterburner
 				drawCircle(fxCtx,ball.prevX-cameraX,ball.prevY-cameraY,6,YES);
@@ -975,7 +977,7 @@ window.onload = function(){
 					if(e.kind!=BACKGROUND){ //side walls are dawn in background
 						stroke = WALL_COLOR;
 						if(e.kind==PADDLE){
-							stroke = ELT_COLORS[e.elt][1];
+							stroke = ELEMENT_COLORS[e.elt][1];
 						}
 						style(entityCtx,0,stroke,2);
 						drawLine(entityCtx, e.x-cameraX, e.y-cameraY, e.x2-cameraX, e.y2-cameraY);
@@ -1038,7 +1040,7 @@ window.onload = function(){
 				entityCtx.restore();
 			}
 			//draw camembert
-			style(entityCtx, ELT_COLORS[ball.elt][0], ELT_COLORS[ball.elt][1],2);
+			style(entityCtx, ELEMENT_COLORS[ball.elt][0], ELEMENT_COLORS[ball.elt][1],2);
 			if(dAngle===0){
 				drawCircle(entityCtx,
 					ball.x-cameraX +dx,
@@ -1093,26 +1095,31 @@ window.onload = function(){
 			var same = ball.elt == m.elt;
 
 			//Draw halo for elements that are not the same as the current ball element
-			style(entityCtx,ELT_COLORS[m.elt][0],ELT_COLORS[m.elt][0],2);
-			if(!same){
-				entityCtx.globalAlpha = 0.2*a;
-				drawCircle(entityCtx, m.x-cameraX, m.y-cameraY, m.r,YES);
-				if(m.elt==AIR){
-					//We want air inner sprite to be transparent
-					entityCtx.globalAlpha = 1;
-					entityCtx.globalCompositeOperation = "destination-out";
-					drawCircle(entityCtx, m.x-cameraX, m.y-cameraY, 17,YES);
-					entityCtx.globalCompositeOperation = "source-over";
-				}
+			style(entityCtx,
+				same ? VOID_COLOR : vulnerable ? ELEMENT_COLORS[m.elt][0] : DANGER_COLOR,
+				same ? WALL_COLOR : DANGER_COLOR, //ELEMENT_COLORS[m.elt][2] || ELEMENT_COLORS[m.elt][0],	//added a third value to tweak border color of monsters
+				2);
+			entityCtx.globalAlpha = a * (same ? 1 : vulnerable ? 0.2 : 0.5);
+			drawCircle(entityCtx, m.x-cameraX, m.y-cameraY, m.r,YES);
+			if(m.elt==AIR){
+				//We want air inner sprite to be transparent
+				entityCtx.globalAlpha = 1;
+				entityCtx.globalCompositeOperation = "destination-out";
+				drawCircle(entityCtx, m.x-cameraX, m.y-cameraY, 17,YES);
+				entityCtx.globalCompositeOperation = "source-over";
 			}
+
 
 			//Apply cpt fade for basic destroy/appear fade
 			entityCtx.globalAlpha = a;
 
-			if(!vulnerable && !same){
+			if(!vulnerable){
 				//incompatible element have a border
 				drawCircle(entityCtx, m.x-cameraX, m.y-cameraY, m.r,NO,YES);
 			}
+
+			entityCtx.globalAlpha = a * (same ? 0.4 : vulnerable ? 0.7 : 1);
+
 
 			dx = 0;
 			dy = 0;
@@ -1122,11 +1129,10 @@ window.onload = function(){
 				dy = 3*(Math.random()-0.5);
 			}
 
-			if(!vulnerable){
+			if(same){
 				//non targetable element are faded out
-				entityCtx.globalAlpha = a * 0.5;
+				entityCtx.globalAlpha = a * 0.4;
 			}
-
 			entityCtx.drawImage(monsterCanvas,
 				m.elt*size,0,size,size,
 				m.x-size/2 - cameraX + dx, m.y-size/2 - cameraY + dy,size,size
@@ -1174,22 +1180,22 @@ window.onload = function(){
 		if(ball.x+BALL_RADIUS<0){
 			stop = true;
 			ball.x = 50;
-			ball.y = halfSize;
+			ball.y = HALF_SIZE;
 			ball.sa = 0; //define starting angle
-		}else if(ball.x-BALL_RADIUS>totalSize){
+		}else if(ball.x-BALL_RADIUS>TOTAL_SIZE){
 			stop = true;
-			ball.x = totalSize-50;
-			ball.y = halfSize;
+			ball.x = TOTAL_SIZE-50;
+			ball.y = HALF_SIZE;
 			ball.sa = -PI;
 		}else if(ball.y+BALL_RADIUS<0){
 			stop = true;
 			ball.y = 50;
-			ball.x = halfSize;
+			ball.x = HALF_SIZE;
 			ball.sa = PI/2;
-		}else if(ball.y-BALL_RADIUS>totalSize){
+		}else if(ball.y-BALL_RADIUS>TOTAL_SIZE){
 			stop = true;
-			ball.y = totalSize-50;
-			ball.x = halfSize;
+			ball.y = TOTAL_SIZE-50;
+			ball.x = HALF_SIZE;
 			ball.sa = -PI/2;
 		}
 		if(stop){
@@ -1227,7 +1233,7 @@ window.onload = function(){
 
 		//Create ball
 		canBoost = false;
-		ball = addEntity( makeCircle(halfSize, totalSize-50, BALL_RADIUS, BALL));
+		ball = addEntity( makeCircle(HALF_SIZE, TOTAL_SIZE-50, BALL_RADIUS, BALL));
 		ball.v = {x: 0 , y:0};
 		ball.cpt = 0;
 		ball.elt = NO_ELEMENT;
@@ -1243,7 +1249,7 @@ window.onload = function(){
 		var i,j;
 		for(i=0 ; i<n ; i++){
 			var r = MONSTER_RADIUS+4;
-			var dist = 2*r+(centerRadius-2*r)*i/n >>0;
+			var dist = 2*r+(BUMPER_ZONE_RADIUS-2*r)*i/n >>0;
 			var angle = rand()*2*PI;
 			bumper = makeCircle(0,0,r,BUMPER); //position is computed in updatePhysics
 			movingBumpers.push(addEntity(bumper));
@@ -1291,7 +1297,6 @@ window.onload = function(){
 		rings.n = 0;
 		rings.cpt = 0;
 		var ring, ringAngle;
-		var radius = (tableWidth/2+pyth(tableWidth/2,tableWidth/2))/2; //some arbitrary radius
 		var nCircles = 6;
 		var nBranches = 11;
 		var startAngle = Math.random()*PI;
@@ -1303,8 +1308,8 @@ window.onload = function(){
 				rings[rings.n] = ring;
 				rings.n++;
 
-				ring.x = halfSize+Math.cos(ringAngle)*i*radius/nCircles;
-				ring.y = halfSize+Math.sin(ringAngle)*i*radius/nCircles;
+				ring.x = HALF_SIZE+Math.cos(ringAngle)*i*RING_ZONE_RADIUS/nCircles;
+				ring.y = HALF_SIZE+Math.sin(ringAngle)*i*RING_ZONE_RADIUS/nCircles;
 			}
 		}
 	}
@@ -1347,9 +1352,9 @@ window.onload = function(){
 		addMultiple(entity);
 
 		//create mirror entity
-		entity.x = tableWidth-entity.x;
+		entity.x = TABLE_WIDTH-entity.x;
 		if(entity.shape==LINE){
-			entity.x2 = tableWidth-entity.x2;
+			entity.x2 = TABLE_WIDTH-entity.x2;
 		}
 		entity.mirror = true;
 		//and multiply it
@@ -1361,16 +1366,16 @@ window.onload = function(){
 		var x = e[xProp];
 		var y = e[yProp];
 		if(side===0 || side==2){
-			x += tableHeight+cornerRadius;
+			x += TABLE_HEIGHT+CORNER_RADIUS;
 			if(side===0){
-				y = totalSize-y;
+				y = TOTAL_SIZE-y;
 			}
 		}else{
 			var swap = y;
-			y = tableHeight+cornerRadius+x;
+			y = TABLE_HEIGHT+CORNER_RADIUS+x;
 			x = swap;
 			if(side==1){
-				x = totalSize-x;
+				x = TOTAL_SIZE-x;
 			}
 		}
 		e[xProp] = x>>0;
@@ -1385,7 +1390,7 @@ window.onload = function(){
 	//------------------------------------------------------------------------------------------------------------------
 
 	function identity(val){ return val; }
-	function mirror(val){ return totalSize-val;	}
+	function mirror(val){ return TOTAL_SIZE-val;	}
 
 	function clamp(val,b1,b2){
 		if(val<b1){
