@@ -87,7 +87,7 @@ window.onload = function(){
 		//AIR
 		["rgba(255,255,255,0.5","#fff"],
 		//NO ELEMENT
-		["#ff6","#ff6"]
+		["#ff6","#555"]
 	];
 
 	function buildBackground(){
@@ -375,7 +375,7 @@ window.onload = function(){
 					ball.boostCpt = MIN_BOOST_CPT+BOOST_CPT_BONUS*boostRatio;
 					started = true;
 
-					console.log(boostRatio,startAngle,ball);
+					//console.log(boostRatio,startAngle,ball);
 				}
 			}
 		}
@@ -446,11 +446,11 @@ window.onload = function(){
 		if(mouse.left && canBoost){
 			tempVector.x = mouse.x-ball.x;
 			tempVector.y = mouse.y-ball.y;
-			normalize(tempVector, MAX_SPEED);
+			normalize(tempVector, MIN_BOOST_SPEED+0.5*BOOST_SPEED_BONUS);
 			ball.v.x = tempVector.x;
 			ball.v.y = tempVector.y;
 
-			ball.boostCpt = MIN_BOOST_CPT;
+			ball.boostCpt = MIN_BOOST_CPT+0.5*BOOST_CPT_BONUS;
 			ball.boostX = ball.v.x;
 			ball.boostY = ball.v.y;
 
@@ -483,6 +483,7 @@ window.onload = function(){
 			var gx = 0;
 			var gy = 0;
 			var gravity = GRAVITY;
+			var maxSpeed = MAX_SPEED;
 			//distance to screen center
 			dx = halfSize - ball.x;
 			dy = halfSize - ball.y;
@@ -494,6 +495,7 @@ window.onload = function(){
 				dx/=distanceToCenter;
 				dy/=distanceToCenter;
 				gravity *= (0.1+0.9*distanceToCenter/range); //Close to the center, gravity gets weaker
+				maxSpeed *= (0.5+0.5*distanceToCenter/range);
 			}
 
 			//applied gravity depends on which quadrant the ball is in
@@ -525,8 +527,8 @@ window.onload = function(){
 			}
 
 			//make sure speed can't be too high
-			if(ball.v.x*ball.v.x+ball.v.y*ball.v.y > MAX_SPEED*MAX_SPEED){
-				normalize(ball.v,MAX_SPEED);
+			if(ball.v.x*ball.v.x+ball.v.y*ball.v.y > maxSpeed*maxSpeed){
+				normalize(ball.v,maxSpeed);
 			}
 			//update position based on speed
 			ball.x += ball.v.x;
@@ -879,10 +881,7 @@ window.onload = function(){
 				//Draw boost afterburner
 				drawCircle(fxCtx,ball.prevX-cameraX,ball.prevY-cameraY,6, ELT_COLORS[ball.elt][1]);
 			}else{
-				if(canBoost){
-					//boost is ready
-					drawCircle(fxCtx,ball.x-cameraX,ball.y-cameraY,2, ELT_COLORS[ball.elt][1]);
-				}
+				drawCircle(fxCtx,ball.x-cameraX,ball.y-cameraY,2, ELT_COLORS[ball.elt][1]);
 			}
 		}else{
 			clearCanvas(fxCtx);
@@ -932,6 +931,27 @@ window.onload = function(){
 					dx = shake*rand() >> 0;
 					dy = shake*rand() >> 0;
 				}
+				if(canBoost){
+					//Draw wings
+					//Draw cute wings
+					entityCtx.save();
+					entityCtx.translate(ball.x-cameraX +dx,ball.y-cameraY +dy);
+					entityCtx.rotate(angle);
+					style(entityCtx,"#fff","#000",1);
+					entityCtx.beginPath();
+					entityCtx.arc(-10,0,20,0,2.2);
+					entityCtx.lineTo(0,0);
+					entityCtx.arc(-10,0,20,-0,-2.2,true);
+					entityCtx.lineTo(0,0);
+					entityCtx.closePath();
+					entityCtx.fill();
+					entityCtx.stroke();
+
+					entityCtx.globalCompositeOperation = "destination-out";
+					drawCircle(entityCtx,0,0,BALL_RADIUS,"#fff");
+					entityCtx.restore();
+				}
+
 
 				//draw camembert
 				stroke = ELT_COLORS[ball.elt][1];
@@ -955,6 +975,9 @@ window.onload = function(){
 					entityCtx.fill();
 					entityCtx.stroke();
 				}
+
+
+
 			}else if(e.shape == CIRCLE){
 				//Bumper or monster
 				if(e.kind==BACKGROUND){
