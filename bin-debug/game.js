@@ -12,6 +12,9 @@ window.onload = function(){
 
 	var toChar = String.fromCharCode;
 
+	var YES = true;
+	var NO = false;
+
 	//------------------------------------------------------------------------------------------------------------------
 	// sizes and DOM
 	//------------------------------------------------------------------------------------------------------------------
@@ -110,11 +113,11 @@ window.onload = function(){
 		bgCtx.globalCompositeOperation = "source-over";
 
 		//diagonal lines
-		drawLine(bgCtx,0,0,totalSize,totalSize,TILE_LINE_COLOR_3);
-		drawLine(bgCtx,totalSize,0,0,totalSize,TILE_LINE_COLOR_3);
-
+		style(bgCtx,TILE_FILL_COLOR,TILE_LINE_COLOR_3,2);
+		drawLine(bgCtx,0,0,totalSize,totalSize);
+		drawLine(bgCtx,totalSize,0,0,totalSize);
 		//middle circle
-		drawCircle(bgCtx,halfSize,halfSize,8,TILE_FILL_COLOR,TILE_LINE_COLOR_3);
+		drawCircle(bgCtx,halfSize,halfSize,8, YES,YES);
 		//drawCircle(bgCtx,halfSize,halfSize,centerRadius,null,TILE_LINE_COLOR_3,1);
 
 		var upChar = 0x21e7;
@@ -185,12 +188,14 @@ window.onload = function(){
 		monsterCtx.fill();
 		monsterCtx.stroke();
 		//White lines
-		drawLine(monsterCtx,8,4,4,20,"#fff",2);
+		style(monsterCtx,NO,"#fff",2);
+		drawLine(monsterCtx,8,4,4,20);
 		drawLine(monsterCtx,16,2,8,26, 0,1);
 		drawLine(monsterCtx,36,14,18,36, 0,1);
 		drawLine(monsterCtx,38,18,26,36, 0,2);
 		//eyes
-		drawLine(monsterCtx,s2-4,10,s2-4,18,"#58f",2);
+		style(monsterCtx,NO,"#58f",2);
+		drawLine(monsterCtx,s2-4,10,s2-4,18);
 		drawLine(monsterCtx,s2+4,10,s2+4,18);
 		//drawLine(monsterCtx,s2-8,6,s2+8,6);
 
@@ -224,28 +229,30 @@ window.onload = function(){
 		monsterCtx.fill();
 		monsterCtx.stroke();
 		//Dots
-		drawCircle(monsterCtx,10,7,1,"#d72");
-		drawCircle(monsterCtx,24,9,1);
-		drawCircle(monsterCtx,7,20,1);
-		drawCircle(monsterCtx,20,14,1);
-		drawCircle(monsterCtx,8,30,1);
-		drawCircle(monsterCtx,28,32,1);
+		style(monsterCtx,"#d72");
+		drawCircle(monsterCtx,10,7,1,YES);
+		drawCircle(monsterCtx,24,9,1,YES);
+		drawCircle(monsterCtx,7,20,1,YES);
+		drawCircle(monsterCtx,20,14,1,YES);
+		drawCircle(monsterCtx,8,30,1,YES);
+		drawCircle(monsterCtx,28,32,1,YES);
 		//eyes
+		style(monsterCtx,"#000","#d72",1);
 		for(var i=0;i<2;i++){
 			var fill;
 			if(i===0){
 				monsterCtx.globalCompositeOperation = "destination-out";
-				fill = "#000";
+				fill = YES;
 			}else{
 				monsterCtx.globalCompositeOperation = "source-over";
-				fill = null;
+				fill = NO;
 			}
 			monsterCtx.scale(1, 3/2);
-			drawCircle(monsterCtx,13,14,4,fill,"#d72",1);
+			drawCircle(monsterCtx,13,14,4,fill,YES);
 			monsterCtx.scale(1, 2/3);
 			//monsterCtx.stroke();
 			monsterCtx.scale(1, 3/2);
-			drawCircle(monsterCtx,26,14,4,fill,"#d72",1);
+			drawCircle(monsterCtx,26,14,4,fill,YES);
 			monsterCtx.scale(1, 2/3);
 			//monsterCtx.stroke();
 		}
@@ -254,26 +261,17 @@ window.onload = function(){
 		monsterCtx.translate(s+8, 0);
 
 		monsterCtx.lineCap = "round";
-		//Sphere support (looks weird)
-		/*
-		style(monsterCtx,0,"red",4);
-		monsterCtx.beginPath();
-		monsterCtx.arc(s2, s2-2, s2, 0.6, 2.54);
-		monsterCtx.stroke();
-		monsterCtx.beginPath();
-		monsterCtx.arc(s2, s2-10, s2+5, 1, 2.14);
-		monsterCtx.stroke();
-		*/
 		//sphere
-		drawCircle(monsterCtx,s2,s2,s2-4,null,"#fff",2);
+		style(monsterCtx,0,"#fff",2);
+		drawCircle(monsterCtx,s2,s2,s2-4,NO,YES);
 		//Reflection
 		style(0,0,1);
 		monsterCtx.beginPath();
 		monsterCtx.arc(s2, s2, s2-8, 3.2, 4.4);
 		monsterCtx.stroke();
 		//eyes
-		drawCircle(monsterCtx,s2-4,s2+4,4,0,"#fff",2);
-		drawCircle(monsterCtx,s2+4,s2+4,4,0,"#fff",2);
+		drawCircle(monsterCtx,s2-4,s2+4,4,NO,YES);
+		drawCircle(monsterCtx,s2+4,s2+4,4,NO,YES);
 	}
 
 
@@ -290,7 +288,8 @@ window.onload = function(){
 		BUMPER = "bp",
 		OBSTACLE = "o",
 		PADDLE = "p",
-		MONSTER = "m";
+		MONSTER = "m",
+		RING = "ring";
 
 	//used for entity.elt
 	var WATER = 0;
@@ -310,6 +309,7 @@ window.onload = function(){
 	//ball,walls,slopes,padles (everything that isn't added/removed)
 	var entities;
 	var monsters;
+	var rings;
 	var ball;
 	var pads;
 	var movingBumpers;
@@ -877,21 +877,16 @@ window.onload = function(){
 			//clean render again
 			clearCanvas(renderCtx);
 
+			style(fxCtx, ELT_COLORS[ball.elt][1]);
 			if(ball.boostCpt>0){
 				//Draw boost afterburner
-				drawCircle(fxCtx,ball.prevX-cameraX,ball.prevY-cameraY,6, ELT_COLORS[ball.elt][1]);
+				drawCircle(fxCtx,ball.prevX-cameraX,ball.prevY-cameraY,6,YES);
 			}else{
-				drawCircle(fxCtx,ball.x-cameraX,ball.y-cameraY,2, ELT_COLORS[ball.elt][1]);
+				drawCircle(fxCtx,ball.x-cameraX,ball.y-cameraY,2, YES);
 			}
 		}else{
 			clearCanvas(fxCtx);
 		}
-
-
-		//Draw ball position
-		//drawCircle(bgCtx,ball.x,ball.y,10, ball.collide ? "red": ball.boostCpt > 0 ? "orange":"white");
-		//Draw camera center position
-		//drawCircle(bgCtx,cameraX+screenWidth/2,cameraY+screenHeight/2,1,TILE_LINE_COLOR_3);
 
 		var dx,dy;
 		for(var i=0 , len=entities.length ; i<len ; i++){
@@ -899,136 +894,113 @@ window.onload = function(){
 			var x = e.x-cameraX;
 			var y = e.y-cameraY;
 			var fill, stroke, lineWidth;
-			if(e==ball){
-				//mouth orientation
-				var angle;
-				if(!started){
-					angle = ball.sa;
-					startPulse+=0.05;
-				}else{
-					angle = Math.atan2(ball.v.y,ball.v.x);
-					startPulse = 0;
-				}
-
-				//mouth open angle and direction
-				ball.cpt = (++ball.cpt)%20;
-				var dAngle = ball.cpt;
-				if(dAngle>10) dAngle = 20-dAngle;
-				if(!started){
-					//while starting, mouth open angle depends on the current boost power
-					dAngle = 2+8*(startCpt/START_CPT_MAX) >>0 ;
-					//mouth orientation changes with time
-					angle += Math.cos(startPulse)*PI/3;
-					startAngle = angle; //it defines the boost direction
-				}
-				dAngle *= 0.3*PI/10;
-
-				//Shake when starting
-				dx = 0;
-				dy = 0;
-				if(startCpt>0 && !started){
-					var shake = clamp(startCpt/START_CPT_MAX,0,1)*4 >>0;
-					dx = shake*rand() >> 0;
-					dy = shake*rand() >> 0;
-				}
-				if(canBoost){
-					//Draw wings
-					//Draw cute wings
-					entityCtx.save();
-					entityCtx.translate(ball.x-cameraX +dx,ball.y-cameraY +dy);
-					entityCtx.rotate(angle);
-					style(entityCtx,"#fff","#000",1);
-					entityCtx.beginPath();
-					entityCtx.arc(-10,0,20,0,2.2);
-					entityCtx.lineTo(0,0);
-					entityCtx.arc(-10,0,20,-0,-2.2,true);
-					entityCtx.lineTo(0,0);
-					entityCtx.closePath();
-					entityCtx.fill();
-					entityCtx.stroke();
-
-					entityCtx.globalCompositeOperation = "destination-out";
-					drawCircle(entityCtx,0,0,BALL_RADIUS,"#fff");
-					entityCtx.restore();
-				}
-
-
-				//draw camembert
-				stroke = ELT_COLORS[ball.elt][1];
-				fill = ELT_COLORS[ball.elt][0];
-				if(dAngle===0){
-					drawCircle(entityCtx,
-						ball.x-cameraX +dx,
-						ball.y-cameraY +dy,
-						BALL_RADIUS,fill,stroke);
-				}else{
-					style(entityCtx,fill,stroke,2);
-					entityCtx.beginPath();
-					entityCtx.arc(
-						ball.x-cameraX +dx,
-						ball.y-cameraY +dy,
-						ball.r,	angle+dAngle, angle-dAngle);
-					entityCtx.lineTo(
-						ball.x-cameraX +dx,
-						ball.y-cameraY +dy);
-					entityCtx.closePath();
-					entityCtx.fill();
-					entityCtx.stroke();
-				}
-
-
-
-			}else if(e.shape == CIRCLE){
-				//Bumper or monster
-				if(e.kind==BACKGROUND){
-					fill = 0;
-					stroke = 0;
-				}else{
-					lineWidth = 2;
-					stroke = WALL_COLOR;
-					fill = "#000";
-					if(e.colCpt>0){
-						e.colCpt--;
-						stroke = COLLIDE_COLOR;
-					}
-				}
-				if(fill || stroke){
-					drawCircle(entityCtx,x,y, e.r,fill,stroke, lineWidth);
-				}
-			}else if(e.shape == LINE){
-				if(e.kind!=BACKGROUND){ //side walls are dawn in background
-					stroke = WALL_COLOR;
-					if(e.kind==PADDLE){
-						stroke = ELT_COLORS[e.elt][1];
-						/*
-						if(e.collide){
+			if(e!=ball){
+				if(e.shape == CIRCLE){
+					//Bumper or monster
+					if(e.kind==BUMPER){
+						if(e.colCpt>0){
+							e.colCpt--;
 							stroke = COLLIDE_COLOR;
+						}else{
+							stroke = WALL_COLOR;
 						}
-						*/
+						style(entityCtx,"#000",stroke, 2);
+						drawCircle(entityCtx,x,y, e.r,YES,YES);
 					}
-					if(stroke){
-						drawLine(entityCtx, e.x-cameraX, e.y-cameraY, e.x2-cameraX, e.y2-cameraY,stroke,2);
+				}else if(e.shape == LINE){
+					if(e.kind!=BACKGROUND){ //side walls are dawn in background
+						stroke = WALL_COLOR;
+						if(e.kind==PADDLE){
+							stroke = ELT_COLORS[e.elt][1];
+						}
+						style(entityCtx,0,stroke,2);
+						drawLine(entityCtx, e.x-cameraX, e.y-cameraY, e.x2-cameraX, e.y2-cameraY);
 					}
 				}
-
-				/*
-				 //drawCircle(renderCtx,e.x-cameraX, e.y-cameraY,4,"red");
-				 if(e.kind==PADDLE){
-				 drawLine(renderCtx, e.x-cameraX, e.y-cameraY, e.prevX2-cameraX, e.prevY2-cameraY,"yellow",2);
-				 }
-				 */
 			}
 		}
 
+		//Draw ball
+		if(ball){
+			//mouth orientation
+			var angle;
+			if(!started){
+				angle = ball.sa;
+				startPulse+=0.05;
+			}else{
+				angle = Math.atan2(ball.v.y,ball.v.x);
+				startPulse = 0;
+			}
+
+			//mouth open angle and direction
+			ball.cpt = (++ball.cpt)%20;
+			var dAngle = ball.cpt;
+			if(dAngle>10) dAngle = 20-dAngle;
+			if(!started){
+				//while starting, mouth open angle depends on the current boost power
+				dAngle = 2+8*(startCpt/START_CPT_MAX) >>0 ;
+				//mouth orientation changes with time
+				angle += Math.cos(startPulse)*PI/3;
+				startAngle = angle; //it defines the boost direction
+			}
+			dAngle *= 0.3*PI/10;
+
+			//Shake when starting
+			dx = 0;
+			dy = 0;
+			if(startCpt>0 && !started){
+				var shake = clamp(startCpt/START_CPT_MAX,0,1)*4 >>0;
+				dx = shake*rand() >> 0;
+				dy = shake*rand() >> 0;
+			}
+			if(canBoost){
+				//Draw wings
+				//Draw cute wings
+				entityCtx.save();
+				entityCtx.translate(ball.x-cameraX +dx,ball.y-cameraY +dy);
+				entityCtx.rotate(angle);
+				style(entityCtx,"#fff","#000",1);
+				entityCtx.beginPath();
+				entityCtx.arc(-10,0,20,0,2.2);
+				entityCtx.lineTo(0,0);
+				entityCtx.arc(-10,0,20,-0,-2.2,true);
+				entityCtx.lineTo(0,0);
+				entityCtx.closePath();
+				entityCtx.fill();
+				entityCtx.stroke();
+
+				entityCtx.globalCompositeOperation = "destination-out";
+				drawCircle(entityCtx,0,0,BALL_RADIUS,"#fff");
+				entityCtx.restore();
+			}
+			//draw camembert
+			style(entityCtx, ELT_COLORS[ball.elt][0], ELT_COLORS[ball.elt][1],2);
+			if(dAngle===0){
+				drawCircle(entityCtx,
+					ball.x-cameraX +dx,
+					ball.y-cameraY +dy,
+					BALL_RADIUS,YES,YES);
+			}else{
+				entityCtx.beginPath();
+				entityCtx.arc(
+					ball.x-cameraX +dx,
+					ball.y-cameraY +dy,
+					ball.r,	angle+dAngle, angle-dAngle);
+				entityCtx.lineTo(
+					ball.x-cameraX +dx,
+					ball.y-cameraY +dy);
+				entityCtx.closePath();
+				entityCtx.fill();
+				entityCtx.stroke();
+			}
+		}
+
+
 		//draw monsters
+		var size = (spriteSize+spriteMargin*2);
 		for(i=0 ; i<monsters.n ; i++){
-			var a = 1;
 			var m = monsters[i];
-			var size = (spriteSize+spriteMargin*2);
-
-			var vulnerable = killMap[ball.elt] == m.elt;
-			var same = ball.elt == m.elt;
-
+			var a = 1;
 
 			if(m.dead){
 				//dead monster
@@ -1053,14 +1025,19 @@ window.onload = function(){
 				}
 			}
 
-			//Draw halo for elements that are collidable
+			var vulnerable = killMap[ball.elt] == m.elt;
+			var same = ball.elt == m.elt;
+
+			//Draw halo for elements that are not the same as the current ball element
+			style(entityCtx,ELT_COLORS[m.elt][0],ELT_COLORS[m.elt][0],2);
 			if(!same){
 				entityCtx.globalAlpha = 0.2*a;
-				drawCircle(entityCtx, m.x-cameraX, m.y-cameraY, m.r,ELT_COLORS[m.elt][0]);
+				drawCircle(entityCtx, m.x-cameraX, m.y-cameraY, m.r,YES);
 				if(m.elt==AIR){
+					//We want air inner sprite to be transparent
 					entityCtx.globalAlpha = 1;
 					entityCtx.globalCompositeOperation = "destination-out";
-					drawCircle(entityCtx, m.x-cameraX, m.y-cameraY, 17,ELT_COLORS[m.elt][0]);
+					drawCircle(entityCtx, m.x-cameraX, m.y-cameraY, 17,YES);
 					entityCtx.globalCompositeOperation = "source-over";
 				}
 			}
@@ -1070,7 +1047,7 @@ window.onload = function(){
 
 			if(!vulnerable && !same){
 				//incompatible element have a border
-				drawCircle(entityCtx, m.x-cameraX, m.y-cameraY, m.r,null,ELT_COLORS[m.elt][0]);
+				drawCircle(entityCtx, m.x-cameraX, m.y-cameraY, m.r,NO,YES);
 			}
 
 			dx = 0;
@@ -1095,6 +1072,27 @@ window.onload = function(){
 		}
 		entityCtx.globalAlpha = 1;
 
+		//draw rings
+		style(entityCtx,null,"#ff0",2);
+		var ringRadius = rings[0].r;
+		var twoPi = 2*PI;
+		var minx = cameraX-ringRadius;
+		var maxx = cameraX+screenWidth+ringRadius;
+		var miny = cameraY-ringRadius;
+		var maxy = cameraY+screenWidth+ringRadius;
+		var rx,ry;
+		for(i=0 ; i<rings.n ; i++){
+			var ring = rings[i];
+			rx = ring.x;
+			ry = ring.y;
+			if( rx>minx && rx<maxx && ry>miny && ry<maxy){
+				entityCtx.beginPath();
+				entityCtx.arc(rx-cameraX,ry-cameraY,ringRadius,0,twoPi);
+				entityCtx.stroke();
+			}
+		}
+
+
 		//compose final rendering
 		drawImage(renderCtx, bgCanvas, -cameraX, -cameraY);
 		if(drawFx) drawImage(renderCtx, fxCanvas, 0, 0);
@@ -1103,7 +1101,7 @@ window.onload = function(){
 
 	function updateGameWorld(){
 		//make sure we always have enough monsters
-		var nMonsters = 4;
+		var nMonsters = 1;
 		while(monsters.n<nMonsters){
 			var monster;
 			if(monsters.length==monsters.n){
@@ -1239,6 +1237,18 @@ window.onload = function(){
 		//pads = [pads[1]];
 		//entities = entities.slice(0,-8).concat(pads);
 		//console.log(pads);
+
+
+		//add rings
+		rings = [];
+		rings.n = 50;
+		for(i=0 ; i<rings.n ; i++){
+			var ring = makeEntity(CIRCLE,RING);
+			ring.x = halfSize+(Math.random()*2-1)*centerRadius;
+			ring.y = halfSize+(Math.random()*2-1)*centerRadius;
+			ring.r = 6;
+			rings[i] = ring;
+		}
 	}
 
 	function makeEntity(shape,kind, x, y){
@@ -1426,9 +1436,9 @@ window.onload = function(){
 
 	//set values to 0 if you don't want to change them, null if you want to reset them
 	function style(ctx, fill,stroke,lineWidth){
-		if(fill!==0) ctx.fillStyle = fill;
-		if(stroke!==0) ctx.strokeStyle = stroke;
-		if(lineWidth!==0) ctx.lineWidth = lineWidth;
+		if(fill) ctx.fillStyle = fill;
+		if(stroke) ctx.strokeStyle = stroke;
+		if(lineWidth) ctx.lineWidth = lineWidth;
 	}
 
 	// c: color string or canvas/image
@@ -1446,8 +1456,7 @@ window.onload = function(){
 		ctx.drawImage(src,x,y);
 	}
 
-	function drawCircle(ctx,x,y,radius,fill,stroke,width){
-		style(ctx,fill,stroke,width||2);
+	function drawCircle(ctx,x,y,radius,fill,stroke){
 		ctx.beginPath();
 		ctx.arc(x, y, radius, 0, 2 * PI, false);
 		if(fill){
@@ -1456,16 +1465,13 @@ window.onload = function(){
 		if(stroke){
 			ctx.stroke();
 		}
-		ctx.closePath();
 	}
 
-	function drawLine(ctx,x,y,x2,y2,color,width){
-		style(ctx,0,color,width||2);
+	function drawLine(ctx,x,y,x2,y2){
 		ctx.beginPath();
 		ctx.moveTo(x,y);
 		ctx.lineTo(x2,y2);
 		ctx.stroke();
-		//ctx.closePath();
 	}
 
 	function clearCanvas(ctx){
