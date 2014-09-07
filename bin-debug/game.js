@@ -44,11 +44,11 @@ window.onload = function(){
 	var entityCanvas = makeCanvas();
 	var entityCtx = getContext(entityCanvas);
 
-	var spriteMargin = 4;
-	var spriteSize = 40;
-	var monsterRadius = spriteSize-2;
+	var MONSTER_SPRITE_MARGIN = 4;
+	var MONSTER_SPRITE_SIZE = 40;
+	var MONSTER_RADIUS = MONSTER_SPRITE_SIZE-2;
 
-	var monsterCanvas = makeCanvas(4*(spriteSize+2*spriteMargin),spriteSize+2*spriteMargin);
+	var monsterCanvas = makeCanvas(4*(MONSTER_SPRITE_SIZE+2*MONSTER_SPRITE_MARGIN),MONSTER_SPRITE_SIZE+2*MONSTER_SPRITE_MARGIN);
 	var monsterCtx = getContext(monsterCanvas);
 
 	var cameraX;
@@ -172,9 +172,9 @@ window.onload = function(){
 
 
 		//Also draw monster skins
-		var s = spriteSize;
+		var s = MONSTER_SPRITE_SIZE;
 		var s2 = s/2;
-		var r = spriteMargin;
+		var r = MONSTER_SPRITE_MARGIN;
 
 		// ICE
 		monsterCtx.translate(4, 4);
@@ -315,6 +315,7 @@ window.onload = function(){
 	var movingBumpers;
 
 	var BALL_RADIUS = 14;
+	var RING_RADIUS = 6;
 
 	//Start seq via right button
 	var started = false;
@@ -462,7 +463,7 @@ window.onload = function(){
 	function updatePhysics(){
 		var i,len, e,eLen;
 
-		//rotate moving bumpers
+		//rotate moving bumpers & monsters
 		len=movingBumpers.length;
 		eLen = movingBumpers.length + monsters.n;
 		for(i=0 ; i<eLen ; i++){
@@ -547,7 +548,6 @@ window.onload = function(){
 				}else{
 					e = monsters[i-eLen];
 				}
-
 				if(e != ball){
 					e.collide = false;
 					var l;
@@ -767,14 +767,10 @@ window.onload = function(){
 
 						var bounciness =  0.2;
 						if(e.kind==BUMPER){
-							bounciness = 1.3;
+							bounciness = 1.1;
 							canBoost = true;
 						}else if(e.kind==MONSTER){
-							if(e.elt==ball.elt){
-								bounciness = 1.5;
-							}else{
-								bounciness = 0.5;
-							}
+							bounciness = 1.1;
 						}
 						collisionVector.x *= cos * bounciness * vl;
 						collisionVector.y *= cos * bounciness * vl;
@@ -787,6 +783,50 @@ window.onload = function(){
 			}
 			ball.prevX = ball.x;
 			ball.prevY = ball.y;
+		}
+
+		//rings
+		var ring;
+		var ballRadProd = (BALL_RADIUS+RING_RADIUS)*(BALL_RADIUS+RING_RADIUS);
+		var monsterRadProd = (BALL_RADIUS-MONSTER_RADIUS)*(BALL_RADIUS-MONSTER_RADIUS);
+		for(i=0 ; i<rings.n ; i++){
+			ring = rings[i];
+			//Check ball collision first
+			var rx = ring.x-ball.x;
+			var ry = ring.y-ball.y;
+			var prod = rx*rx + ry*ry;
+			if(prod < ballRadProd){
+				ring.m = null;
+				//catch ring !
+				//remove by swapping
+				rings[i] = rings[rings.n-1];
+				rings[rings.n-1] = ring;
+				i--;
+				rings.n--;
+			}else{
+				if(!ring.m){
+					//check monsters collisions
+					for(var j=0 ; j<monsters.n ; j++){
+						var monster = monsters[j];
+						rx = ring.x - monster.x;
+						ry = ring.y - monster.y;
+						prod = rx * rx + ry *ry;
+						if(prod < monsterRadProd){
+							//monster catches the ring
+							ring.m = monster;
+							ring.dx = rx;
+							ring.dy = ry;
+						}
+					}
+				}else{
+					if(ring.m.dead){
+						ring.m = null;
+					}else{
+						ring.x = ring.m.x + ring.dx;
+						ring.y = ring.m.y + ring.dy;
+					}
+				}
+			}
 		}
 	}
 
@@ -886,6 +926,30 @@ window.onload = function(){
 			}
 		}else{
 			clearCanvas(fxCtx);
+		}
+
+		//draw rings
+		rings.cpt++;
+		//pulse color
+		var color = 0xaa + Math.cos(rings.cpt/20)*0x22 >>0;
+		color = color.toString(16);
+		style(entityCtx,null,"#"+color+color+"00",2);
+
+		var twoPi = 2*PI;
+		var minx = cameraX-RING_RADIUS;
+		var maxx = cameraX+screenWidth+RING_RADIUS;
+		var miny = cameraY-RING_RADIUS;
+		var maxy = cameraY+screenWidth+RING_RADIUS;
+		var rx,ry;
+		for(i=0 ; i<rings.n ; i++){
+			var ring = rings[i];
+			rx = ring.x;
+			ry = ring.y;
+			if( rx>minx && rx<maxx && ry>miny && ry<maxy){
+				entityCtx.beginPath();
+				entityCtx.arc(rx-cameraX,ry-cameraY,RING_RADIUS,0,twoPi);
+				entityCtx.stroke();
+			}
 		}
 
 		var dx,dy;
@@ -997,7 +1061,7 @@ window.onload = function(){
 
 
 		//draw monsters
-		var size = (spriteSize+spriteMargin*2);
+		var size = (MONSTER_SPRITE_SIZE+MONSTER_SPRITE_MARGIN*2);
 		for(i=0 ; i<monsters.n ; i++){
 			var m = monsters[i];
 			var a = 1;
@@ -1072,26 +1136,6 @@ window.onload = function(){
 		}
 		entityCtx.globalAlpha = 1;
 
-		//draw rings
-		style(entityCtx,null,"#ff0",2);
-		var ringRadius = rings[0].r;
-		var twoPi = 2*PI;
-		var minx = cameraX-ringRadius;
-		var maxx = cameraX+screenWidth+ringRadius;
-		var miny = cameraY-ringRadius;
-		var maxy = cameraY+screenWidth+ringRadius;
-		var rx,ry;
-		for(i=0 ; i<rings.n ; i++){
-			var ring = rings[i];
-			rx = ring.x;
-			ry = ring.y;
-			if( rx>minx && rx<maxx && ry>miny && ry<maxy){
-				entityCtx.beginPath();
-				entityCtx.arc(rx-cameraX,ry-cameraY,ringRadius,0,twoPi);
-				entityCtx.stroke();
-			}
-		}
-
 
 		//compose final rendering
 		drawImage(renderCtx, bgCanvas, -cameraX, -cameraY);
@@ -1101,20 +1145,20 @@ window.onload = function(){
 
 	function updateGameWorld(){
 		//make sure we always have enough monsters
-		var nMonsters = 1;
+		var nMonsters = 4;
 		while(monsters.n<nMonsters){
 			var monster;
 			if(monsters.length==monsters.n){
 				monster = makeEntity(CIRCLE,MONSTER);
 				monsters.push(monster);
 				monster.elt = monsters.n%4;
-				monster.r = monsterRadius;
+				monster.r = MONSTER_RADIUS;
 			}else{
 				monster = monsters[monsters.n];
 			}
 			monsters.n++;
 
-			var bumper = movingBumpers[monsters.n%movingBumpers.length];
+			var bumper = movingBumpers[monster.elt];
 			monster.x = bumper.x;
 			monster.y = bumper.y;
 			monster.cpt = 0;
@@ -1195,11 +1239,13 @@ window.onload = function(){
 		//moving bumpers
 		movingBumpers = [];
 		var n = 4;
-		for(var i=0 ; i<n ; i++){
-			var r = monsterRadius+4;
+		var bumper;
+		var i,j;
+		for(i=0 ; i<n ; i++){
+			var r = MONSTER_RADIUS+4;
 			var dist = 2*r+(centerRadius-2*r)*i/n >>0;
 			var angle = rand()*2*PI;
-			var bumper = makeCircle(0,0,r,BUMPER); //position is computed in updatePhysics
+			bumper = makeCircle(0,0,r,BUMPER); //position is computed in updatePhysics
 			movingBumpers.push(addEntity(bumper));
 			//move speed, in pixels per frame
 			var speed = (0.2+rand()*0.2)*(rand()>0.5 ? -1:1);
@@ -1207,11 +1253,12 @@ window.onload = function(){
 			bumper.da = speed/dist;
 			bumper.a = angle;
 			bumper.d = dist;
-
-			if(i>1){
-				//Add mirror bumpers on edges
-				bumper = cloneObject(bumper);
-				bumper.a += PI;
+		}
+		for(i=1 ; i<n ; i++){
+			//Add mirror bumpers on edges
+			for(j=0 ; j<i ; j++){
+				bumper = cloneObject(movingBumpers[i]);
+				bumper.a += 2*PI*(j+1)/(i+1);
 				movingBumpers.push(addEntity(bumper));
 			}
 		}
@@ -1241,13 +1288,24 @@ window.onload = function(){
 
 		//add rings
 		rings = [];
-		rings.n = 50;
-		for(i=0 ; i<rings.n ; i++){
-			var ring = makeEntity(CIRCLE,RING);
-			ring.x = halfSize+(Math.random()*2-1)*centerRadius;
-			ring.y = halfSize+(Math.random()*2-1)*centerRadius;
-			ring.r = 6;
-			rings[i] = ring;
+		rings.n = 0;
+		rings.cpt = 0;
+		var ring, ringAngle;
+		var radius = (tableWidth/2+pyth(tableWidth/2,tableWidth/2))/2; //some arbitrary radius
+		var nCircles = 6;
+		var nBranches = 11;
+		var startAngle = Math.random()*PI;
+		for(i=1 ; i<=nCircles ; i++){
+			for(j=1 ; j<=nBranches ; j++){
+				ringAngle = 2*PI*(j/nBranches) + i*0.1 + startAngle;
+				ring = makeEntity(CIRCLE,RING);
+				ring.r = RING_RADIUS;
+				rings[rings.n] = ring;
+				rings.n++;
+
+				ring.x = halfSize+Math.cos(ringAngle)*i*radius/nCircles;
+				ring.y = halfSize+Math.sin(ringAngle)*i*radius/nCircles;
+			}
 		}
 	}
 

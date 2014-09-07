@@ -12,6 +12,9 @@ window.onload = function(){
 
 	var toChar = String.fromCharCode;
 
+	var YES = true;
+	var NO = false;
+
 	//------------------------------------------------------------------------------------------------------------------
 	// sizes and DOM
 	//------------------------------------------------------------------------------------------------------------------
@@ -41,11 +44,11 @@ window.onload = function(){
 	var entityCanvas = makeCanvas();
 	var entityCtx = getContext(entityCanvas);
 
-	var spriteMargin = 4;
-	var spriteSize = 40;
-	var monsterRadius = spriteSize-2;
+	var MONSTER_SPRITE_MARGIN = 4;
+	var MONSTER_SPRITE_SIZE = 40;
+	var MONSTER_RADIUS = MONSTER_SPRITE_SIZE-2;
 
-	var monsterCanvas = makeCanvas(4*(spriteSize+2*spriteMargin),spriteSize+2*spriteMargin);
+	var monsterCanvas = makeCanvas(4*(MONSTER_SPRITE_SIZE+2*MONSTER_SPRITE_MARGIN),MONSTER_SPRITE_SIZE+2*MONSTER_SPRITE_MARGIN);
 	var monsterCtx = getContext(monsterCanvas);
 
 	var cameraX;
@@ -87,7 +90,7 @@ window.onload = function(){
 		//AIR
 		["rgba(255,255,255,0.5","#fff"],
 		//NO ELEMENT
-		["#ff6","#ff6"]
+		["#ff6","#555"]
 	];
 
 	function buildBackground(){
@@ -110,11 +113,11 @@ window.onload = function(){
 		bgCtx.globalCompositeOperation = "source-over";
 
 		//diagonal lines
-		drawLine(bgCtx,0,0,totalSize,totalSize,TILE_LINE_COLOR_3);
-		drawLine(bgCtx,totalSize,0,0,totalSize,TILE_LINE_COLOR_3);
-
+		style(bgCtx,TILE_FILL_COLOR,TILE_LINE_COLOR_3,2);
+		drawLine(bgCtx,0,0,totalSize,totalSize);
+		drawLine(bgCtx,totalSize,0,0,totalSize);
 		//middle circle
-		drawCircle(bgCtx,halfSize,halfSize,8,TILE_FILL_COLOR,TILE_LINE_COLOR_3);
+		drawCircle(bgCtx,halfSize,halfSize,8, YES,YES);
 		//drawCircle(bgCtx,halfSize,halfSize,centerRadius,null,TILE_LINE_COLOR_3,1);
 
 		var upChar = 0x21e7;
@@ -169,9 +172,9 @@ window.onload = function(){
 
 
 		//Also draw monster skins
-		var s = spriteSize;
+		var s = MONSTER_SPRITE_SIZE;
 		var s2 = s/2;
-		var r = spriteMargin;
+		var r = MONSTER_SPRITE_MARGIN;
 
 		// ICE
 		monsterCtx.translate(4, 4);
@@ -185,12 +188,14 @@ window.onload = function(){
 		monsterCtx.fill();
 		monsterCtx.stroke();
 		//White lines
-		drawLine(monsterCtx,8,4,4,20,"#fff",2);
+		style(monsterCtx,NO,"#fff",2);
+		drawLine(monsterCtx,8,4,4,20);
 		drawLine(monsterCtx,16,2,8,26, 0,1);
 		drawLine(monsterCtx,36,14,18,36, 0,1);
 		drawLine(monsterCtx,38,18,26,36, 0,2);
 		//eyes
-		drawLine(monsterCtx,s2-4,10,s2-4,18,"#58f",2);
+		style(monsterCtx,NO,"#58f",2);
+		drawLine(monsterCtx,s2-4,10,s2-4,18);
 		drawLine(monsterCtx,s2+4,10,s2+4,18);
 		//drawLine(monsterCtx,s2-8,6,s2+8,6);
 
@@ -224,28 +229,30 @@ window.onload = function(){
 		monsterCtx.fill();
 		monsterCtx.stroke();
 		//Dots
-		drawCircle(monsterCtx,10,7,1,"#d72");
-		drawCircle(monsterCtx,24,9,1);
-		drawCircle(monsterCtx,7,20,1);
-		drawCircle(monsterCtx,20,14,1);
-		drawCircle(monsterCtx,8,30,1);
-		drawCircle(monsterCtx,28,32,1);
+		style(monsterCtx,"#d72");
+		drawCircle(monsterCtx,10,7,1,YES);
+		drawCircle(monsterCtx,24,9,1,YES);
+		drawCircle(monsterCtx,7,20,1,YES);
+		drawCircle(monsterCtx,20,14,1,YES);
+		drawCircle(monsterCtx,8,30,1,YES);
+		drawCircle(monsterCtx,28,32,1,YES);
 		//eyes
+		style(monsterCtx,"#000","#d72",1);
 		for(var i=0;i<2;i++){
 			var fill;
 			if(i===0){
 				monsterCtx.globalCompositeOperation = "destination-out";
-				fill = "#000";
+				fill = YES;
 			}else{
 				monsterCtx.globalCompositeOperation = "source-over";
-				fill = null;
+				fill = NO;
 			}
 			monsterCtx.scale(1, 3/2);
-			drawCircle(monsterCtx,13,14,4,fill,"#d72",1);
+			drawCircle(monsterCtx,13,14,4,fill,YES);
 			monsterCtx.scale(1, 2/3);
 			//monsterCtx.stroke();
 			monsterCtx.scale(1, 3/2);
-			drawCircle(monsterCtx,26,14,4,fill,"#d72",1);
+			drawCircle(monsterCtx,26,14,4,fill,YES);
 			monsterCtx.scale(1, 2/3);
 			//monsterCtx.stroke();
 		}
@@ -254,26 +261,17 @@ window.onload = function(){
 		monsterCtx.translate(s+8, 0);
 
 		monsterCtx.lineCap = "round";
-		//Sphere support (looks weird)
-		/*
-		style(monsterCtx,0,"red",4);
-		monsterCtx.beginPath();
-		monsterCtx.arc(s2, s2-2, s2, 0.6, 2.54);
-		monsterCtx.stroke();
-		monsterCtx.beginPath();
-		monsterCtx.arc(s2, s2-10, s2+5, 1, 2.14);
-		monsterCtx.stroke();
-		*/
 		//sphere
-		drawCircle(monsterCtx,s2,s2,s2-4,null,"#fff",2);
+		style(monsterCtx,0,"#fff",2);
+		drawCircle(monsterCtx,s2,s2,s2-4,NO,YES);
 		//Reflection
 		style(0,0,1);
 		monsterCtx.beginPath();
 		monsterCtx.arc(s2, s2, s2-8, 3.2, 4.4);
 		monsterCtx.stroke();
 		//eyes
-		drawCircle(monsterCtx,s2-4,s2+4,4,0,"#fff",2);
-		drawCircle(monsterCtx,s2+4,s2+4,4,0,"#fff",2);
+		drawCircle(monsterCtx,s2-4,s2+4,4,NO,YES);
+		drawCircle(monsterCtx,s2+4,s2+4,4,NO,YES);
 	}
 
 
@@ -290,7 +288,8 @@ window.onload = function(){
 		BUMPER = "bp",
 		OBSTACLE = "o",
 		PADDLE = "p",
-		MONSTER = "m";
+		MONSTER = "m",
+		RING = "ring";
 
 	//used for entity.elt
 	var WATER = 0;
@@ -310,11 +309,13 @@ window.onload = function(){
 	//ball,walls,slopes,padles (everything that isn't added/removed)
 	var entities;
 	var monsters;
+	var rings;
 	var ball;
 	var pads;
 	var movingBumpers;
 
 	var BALL_RADIUS = 14;
+	var RING_RADIUS = 6;
 
 	//Start seq via right button
 	var started = false;
@@ -361,20 +362,21 @@ window.onload = function(){
 	function processInput(){
 		//boost sequence
 		if(!started){
-			if(mouse.right){
+			if(mouse.right || keys.space){
 				if(startCpt<START_CPT_MAX){
 					startCpt++;
 				}
 			}else{
 				if(startCpt>0){
-					var boostRatio = startCpt / START_CPT_MAX;
-					if(boostRatio>1) boostRatio = 1;
+					var boostRatio = 0.1 + 0.9*startCpt / START_CPT_MAX;
 					//Space boost: based on space held down duration + random x nudge
 					var speed = MIN_BOOST_SPEED+BOOST_SPEED_BONUS*boostRatio;
 					ball.boostX = speed*Math.cos(startAngle);
 					ball.boostY = speed*Math.sin(startAngle);
 					ball.boostCpt = MIN_BOOST_CPT+BOOST_CPT_BONUS*boostRatio;
 					started = true;
+
+					//console.log(boostRatio,startAngle,ball);
 				}
 			}
 		}
@@ -445,11 +447,11 @@ window.onload = function(){
 		if(mouse.left && canBoost){
 			tempVector.x = mouse.x-ball.x;
 			tempVector.y = mouse.y-ball.y;
-			normalize(tempVector, MAX_SPEED);
+			normalize(tempVector, MIN_BOOST_SPEED+0.5*BOOST_SPEED_BONUS);
 			ball.v.x = tempVector.x;
 			ball.v.y = tempVector.y;
 
-			ball.boostCpt = MIN_BOOST_CPT;
+			ball.boostCpt = MIN_BOOST_CPT+0.5*BOOST_CPT_BONUS;
 			ball.boostX = ball.v.x;
 			ball.boostY = ball.v.y;
 
@@ -461,7 +463,7 @@ window.onload = function(){
 	function updatePhysics(){
 		var i,len, e,eLen;
 
-		//rotate moving bumpers
+		//rotate moving bumpers & monsters
 		len=movingBumpers.length;
 		eLen = movingBumpers.length + monsters.n;
 		for(i=0 ; i<eLen ; i++){
@@ -482,6 +484,7 @@ window.onload = function(){
 			var gx = 0;
 			var gy = 0;
 			var gravity = GRAVITY;
+			var maxSpeed = MAX_SPEED;
 			//distance to screen center
 			dx = halfSize - ball.x;
 			dy = halfSize - ball.y;
@@ -493,6 +496,7 @@ window.onload = function(){
 				dx/=distanceToCenter;
 				dy/=distanceToCenter;
 				gravity *= (0.1+0.9*distanceToCenter/range); //Close to the center, gravity gets weaker
+				maxSpeed *= (0.5+0.5*distanceToCenter/range);
 			}
 
 			//applied gravity depends on which quadrant the ball is in
@@ -524,8 +528,8 @@ window.onload = function(){
 			}
 
 			//make sure speed can't be too high
-			if(ball.v.x*ball.v.x+ball.v.y*ball.v.y > MAX_SPEED*MAX_SPEED){
-				normalize(ball.v,MAX_SPEED);
+			if(ball.v.x*ball.v.x+ball.v.y*ball.v.y > maxSpeed*maxSpeed){
+				normalize(ball.v,maxSpeed);
 			}
 			//update position based on speed
 			ball.x += ball.v.x;
@@ -544,7 +548,6 @@ window.onload = function(){
 				}else{
 					e = monsters[i-eLen];
 				}
-
 				if(e != ball){
 					e.collide = false;
 					var l;
@@ -764,14 +767,10 @@ window.onload = function(){
 
 						var bounciness =  0.2;
 						if(e.kind==BUMPER){
-							bounciness = 1.3;
+							bounciness = 1.1;
 							canBoost = true;
 						}else if(e.kind==MONSTER){
-							if(e.elt==ball.elt){
-								bounciness = 1.5;
-							}else{
-								bounciness = 0.5;
-							}
+							bounciness = 1.1;
 						}
 						collisionVector.x *= cos * bounciness * vl;
 						collisionVector.y *= cos * bounciness * vl;
@@ -784,6 +783,50 @@ window.onload = function(){
 			}
 			ball.prevX = ball.x;
 			ball.prevY = ball.y;
+		}
+
+		//rings
+		var ring;
+		var ballRadProd = (BALL_RADIUS+RING_RADIUS)*(BALL_RADIUS+RING_RADIUS);
+		var monsterRadProd = (BALL_RADIUS-MONSTER_RADIUS)*(BALL_RADIUS-MONSTER_RADIUS);
+		for(i=0 ; i<rings.n ; i++){
+			ring = rings[i];
+			//Check ball collision first
+			var rx = ring.x-ball.x;
+			var ry = ring.y-ball.y;
+			var prod = rx*rx + ry*ry;
+			if(prod < ballRadProd){
+				ring.m = null;
+				//catch ring !
+				//remove by swapping
+				rings[i] = rings[rings.n-1];
+				rings[rings.n-1] = ring;
+				i--;
+				rings.n--;
+			}else{
+				if(!ring.m){
+					//check monsters collisions
+					for(var j=0 ; j<monsters.n ; j++){
+						var monster = monsters[j];
+						rx = ring.x - monster.x;
+						ry = ring.y - monster.y;
+						prod = rx * rx + ry *ry;
+						if(prod < monsterRadProd){
+							//monster catches the ring
+							ring.m = monster;
+							ring.dx = rx;
+							ring.dy = ry;
+						}
+					}
+				}else{
+					if(ring.m.dead){
+						ring.m = null;
+					}else{
+						ring.x = ring.m.x + ring.dx;
+						ring.y = ring.m.y + ring.dy;
+					}
+				}
+			}
 		}
 	}
 
@@ -874,24 +917,40 @@ window.onload = function(){
 			//clean render again
 			clearCanvas(renderCtx);
 
+			style(fxCtx, ELT_COLORS[ball.elt][1]);
 			if(ball.boostCpt>0){
 				//Draw boost afterburner
-				drawCircle(fxCtx,ball.prevX-cameraX,ball.prevY-cameraY,6, ELT_COLORS[ball.elt][1]);
+				drawCircle(fxCtx,ball.prevX-cameraX,ball.prevY-cameraY,6,YES);
 			}else{
-				if(canBoost){
-					//boost is ready
-					drawCircle(fxCtx,ball.x-cameraX,ball.y-cameraY,2, ELT_COLORS[ball.elt][1]);
-				}
+				drawCircle(fxCtx,ball.x-cameraX,ball.y-cameraY,2, YES);
 			}
 		}else{
 			clearCanvas(fxCtx);
 		}
 
+		//draw rings
+		rings.cpt++;
+		//pulse color
+		var color = 0xaa + Math.cos(rings.cpt/20)*0x22 >>0;
+		color = color.toString(16);
+		style(entityCtx,null,"#"+color+color+"00",2);
 
-		//Draw ball position
-		//drawCircle(bgCtx,ball.x,ball.y,10, ball.collide ? "red": ball.boostCpt > 0 ? "orange":"white");
-		//Draw camera center position
-		//drawCircle(bgCtx,cameraX+screenWidth/2,cameraY+screenHeight/2,1,TILE_LINE_COLOR_3);
+		var twoPi = 2*PI;
+		var minx = cameraX-RING_RADIUS;
+		var maxx = cameraX+screenWidth+RING_RADIUS;
+		var miny = cameraY-RING_RADIUS;
+		var maxy = cameraY+screenWidth+RING_RADIUS;
+		var rx,ry;
+		for(i=0 ; i<rings.n ; i++){
+			var ring = rings[i];
+			rx = ring.x;
+			ry = ring.y;
+			if( rx>minx && rx<maxx && ry>miny && ry<maxy){
+				entityCtx.beginPath();
+				entityCtx.arc(rx-cameraX,ry-cameraY,RING_RADIUS,0,twoPi);
+				entityCtx.stroke();
+			}
+		}
 
 		var dx,dy;
 		for(var i=0 , len=entities.length ; i<len ; i++){
@@ -899,117 +958,118 @@ window.onload = function(){
 			var x = e.x-cameraX;
 			var y = e.y-cameraY;
 			var fill, stroke, lineWidth;
-			if(e==ball){
-				//mouth orientation
-				var angle;
-				if(!started){
-					angle = ball.sa;
-					startPulse+=0.05;
-				}else{
-					angle = Math.atan2(ball.v.y,ball.v.x);
-					startPulse = 0;
-				}
-
-				//mouth open angle and direction
-				ball.cpt = (++ball.cpt)%20;
-				var dAngle = ball.cpt;
-				if(dAngle>10) dAngle = 20-dAngle;
-				if(!started){
-					//while starting, mouth open angle depends on the current boost power
-					dAngle = 2+8*(startCpt/START_CPT_MAX) >>0 ;
-					//mouth orientation changes with time
-					angle += Math.cos(startPulse)*PI/3;
-					startAngle = angle; //it defines the boost direction
-				}
-				dAngle *= 0.3*PI/10;
-
-				//Shake when starting
-				dx = 0;
-				dy = 0;
-				if(startCpt>0 && !started){
-					var shake = clamp(startCpt/START_CPT_MAX,0,1)*4 >>0;
-					dx = shake*rand() >> 0;
-					dy = shake*rand() >> 0;
-				}
-
-				//draw camembert
-				stroke = ELT_COLORS[ball.elt][1];
-				fill = ELT_COLORS[ball.elt][0];
-				if(dAngle===0){
-					drawCircle(entityCtx,
-						ball.x-cameraX +dx,
-						ball.y-cameraY +dy,
-						BALL_RADIUS,fill,stroke);
-				}else{
-					style(entityCtx,fill,stroke,2);
-					entityCtx.beginPath();
-					entityCtx.arc(
-						ball.x-cameraX +dx,
-						ball.y-cameraY +dy,
-						ball.r,	angle+dAngle, angle-dAngle);
-					entityCtx.lineTo(
-						ball.x-cameraX +dx,
-						ball.y-cameraY +dy);
-					entityCtx.closePath();
-					entityCtx.fill();
-					entityCtx.stroke();
-				}
-			}else if(e.shape == CIRCLE){
-				//Bumper or monster
-				if(e.kind==BACKGROUND){
-					fill = 0;
-					stroke = 0;
-				}else{
-					lineWidth = 2;
-					stroke = WALL_COLOR;
-					fill = "#000";
-					if(e.colCpt>0){
-						e.colCpt--;
-						stroke = COLLIDE_COLOR;
-					}
-				}
-				if(fill || stroke){
-					drawCircle(entityCtx,x,y, e.r,fill,stroke, lineWidth);
-				}
-			}else if(e.shape == LINE){
-				if(e.kind!=BACKGROUND){ //side walls are dawn in background
-					stroke = WALL_COLOR;
-					if(e.kind==PADDLE){
-						stroke = ELT_COLORS[e.elt][1];
-						/*
-						if(e.collide){
+			if(e!=ball){
+				if(e.shape == CIRCLE){
+					//Bumper or monster
+					if(e.kind==BUMPER){
+						if(e.colCpt>0){
+							e.colCpt--;
 							stroke = COLLIDE_COLOR;
+						}else{
+							stroke = WALL_COLOR;
 						}
-						*/
+						style(entityCtx,"#000",stroke, 2);
+						drawCircle(entityCtx,x,y, e.r,YES,YES);
 					}
-					if(stroke){
-						drawLine(entityCtx, e.x-cameraX, e.y-cameraY, e.x2-cameraX, e.y2-cameraY,stroke,2);
+				}else if(e.shape == LINE){
+					if(e.kind!=BACKGROUND){ //side walls are dawn in background
+						stroke = WALL_COLOR;
+						if(e.kind==PADDLE){
+							stroke = ELT_COLORS[e.elt][1];
+						}
+						style(entityCtx,0,stroke,2);
+						drawLine(entityCtx, e.x-cameraX, e.y-cameraY, e.x2-cameraX, e.y2-cameraY);
 					}
 				}
-
-				/*
-				 //drawCircle(renderCtx,e.x-cameraX, e.y-cameraY,4,"red");
-				 if(e.kind==PADDLE){
-				 drawLine(renderCtx, e.x-cameraX, e.y-cameraY, e.prevX2-cameraX, e.prevY2-cameraY,"yellow",2);
-				 }
-				 */
 			}
 		}
 
+		//Draw ball
+		if(ball){
+			//mouth orientation
+			var angle;
+			if(!started){
+				angle = ball.sa;
+				startPulse+=0.05;
+			}else{
+				angle = Math.atan2(ball.v.y,ball.v.x);
+				startPulse = 0;
+			}
+
+			//mouth open angle and direction
+			ball.cpt = (++ball.cpt)%20;
+			var dAngle = ball.cpt;
+			if(dAngle>10) dAngle = 20-dAngle;
+			if(!started){
+				//while starting, mouth open angle depends on the current boost power
+				dAngle = 2+8*(startCpt/START_CPT_MAX) >>0 ;
+				//mouth orientation changes with time
+				angle += Math.cos(startPulse)*PI/3;
+				startAngle = angle; //it defines the boost direction
+			}
+			dAngle *= 0.3*PI/10;
+
+			//Shake when starting
+			dx = 0;
+			dy = 0;
+			if(startCpt>0 && !started){
+				var shake = clamp(startCpt/START_CPT_MAX,0,1)*4 >>0;
+				dx = shake*rand() >> 0;
+				dy = shake*rand() >> 0;
+			}
+			if(canBoost){
+				//Draw wings
+				//Draw cute wings
+				entityCtx.save();
+				entityCtx.translate(ball.x-cameraX +dx,ball.y-cameraY +dy);
+				entityCtx.rotate(angle);
+				style(entityCtx,"#fff","#000",1);
+				entityCtx.beginPath();
+				entityCtx.arc(-10,0,20,0,2.2);
+				entityCtx.lineTo(0,0);
+				entityCtx.arc(-10,0,20,-0,-2.2,true);
+				entityCtx.lineTo(0,0);
+				entityCtx.closePath();
+				entityCtx.fill();
+				entityCtx.stroke();
+
+				entityCtx.globalCompositeOperation = "destination-out";
+				drawCircle(entityCtx,0,0,BALL_RADIUS,"#fff");
+				entityCtx.restore();
+			}
+			//draw camembert
+			style(entityCtx, ELT_COLORS[ball.elt][0], ELT_COLORS[ball.elt][1],2);
+			if(dAngle===0){
+				drawCircle(entityCtx,
+					ball.x-cameraX +dx,
+					ball.y-cameraY +dy,
+					BALL_RADIUS,YES,YES);
+			}else{
+				entityCtx.beginPath();
+				entityCtx.arc(
+					ball.x-cameraX +dx,
+					ball.y-cameraY +dy,
+					ball.r,	angle+dAngle, angle-dAngle);
+				entityCtx.lineTo(
+					ball.x-cameraX +dx,
+					ball.y-cameraY +dy);
+				entityCtx.closePath();
+				entityCtx.fill();
+				entityCtx.stroke();
+			}
+		}
+
+
 		//draw monsters
+		var size = (MONSTER_SPRITE_SIZE+MONSTER_SPRITE_MARGIN*2);
 		for(i=0 ; i<monsters.n ; i++){
-			var a = 1;
 			var m = monsters[i];
-			var size = (spriteSize+spriteMargin*2);
-
-			var vulnerable = killMap[ball.elt] == m.elt;
-			var same = ball.elt == m.elt;
-
+			var a = 1;
 
 			if(m.dead){
 				//dead monster
-				m.cpt-=10;
-				if(m.cpt===0){
+				m.cpt-=10; //fade out faster than fade in
+				if(m.cpt<=0){
 					//remove dead monster (swap with the end of the list)
 					a = monsters[monsters.n-1];
 					monsters[i] = a;
@@ -1029,14 +1089,19 @@ window.onload = function(){
 				}
 			}
 
-			//Draw halo for elements that are collidable
+			var vulnerable = killMap[ball.elt] == m.elt;
+			var same = ball.elt == m.elt;
+
+			//Draw halo for elements that are not the same as the current ball element
+			style(entityCtx,ELT_COLORS[m.elt][0],ELT_COLORS[m.elt][0],2);
 			if(!same){
 				entityCtx.globalAlpha = 0.2*a;
-				drawCircle(entityCtx, m.x-cameraX, m.y-cameraY, m.r,ELT_COLORS[m.elt][0]);
+				drawCircle(entityCtx, m.x-cameraX, m.y-cameraY, m.r,YES);
 				if(m.elt==AIR){
+					//We want air inner sprite to be transparent
 					entityCtx.globalAlpha = 1;
 					entityCtx.globalCompositeOperation = "destination-out";
-					drawCircle(entityCtx, m.x-cameraX, m.y-cameraY, 17,ELT_COLORS[m.elt][0]);
+					drawCircle(entityCtx, m.x-cameraX, m.y-cameraY, 17,YES);
 					entityCtx.globalCompositeOperation = "source-over";
 				}
 			}
@@ -1046,7 +1111,7 @@ window.onload = function(){
 
 			if(!vulnerable && !same){
 				//incompatible element have a border
-				drawCircle(entityCtx, m.x-cameraX, m.y-cameraY, m.r,null,ELT_COLORS[m.elt][0]);
+				drawCircle(entityCtx, m.x-cameraX, m.y-cameraY, m.r,NO,YES);
 			}
 
 			dx = 0;
@@ -1071,6 +1136,7 @@ window.onload = function(){
 		}
 		entityCtx.globalAlpha = 1;
 
+
 		//compose final rendering
 		drawImage(renderCtx, bgCanvas, -cameraX, -cameraY);
 		if(drawFx) drawImage(renderCtx, fxCanvas, 0, 0);
@@ -1086,13 +1152,13 @@ window.onload = function(){
 				monster = makeEntity(CIRCLE,MONSTER);
 				monsters.push(monster);
 				monster.elt = monsters.n%4;
-				monster.r = monsterRadius;
+				monster.r = MONSTER_RADIUS;
 			}else{
 				monster = monsters[monsters.n];
 			}
 			monsters.n++;
 
-			var bumper = movingBumpers[monsters.n%movingBumpers.length];
+			var bumper = movingBumpers[monster.elt];
 			monster.x = bumper.x;
 			monster.y = bumper.y;
 			monster.cpt = 0;
@@ -1130,6 +1196,8 @@ window.onload = function(){
 			started = false;
 			startCpt = 0;
 			ball.elt = NO_ELEMENT;
+			ball.v.x = 0;
+			ball.v.y = 0;
 		}
 	}
 
@@ -1171,11 +1239,13 @@ window.onload = function(){
 		//moving bumpers
 		movingBumpers = [];
 		var n = 4;
-		for(var i=0 ; i<n ; i++){
-			var r = monsterRadius+4;
+		var bumper;
+		var i,j;
+		for(i=0 ; i<n ; i++){
+			var r = MONSTER_RADIUS+4;
 			var dist = 2*r+(centerRadius-2*r)*i/n >>0;
 			var angle = rand()*2*PI;
-			var bumper = makeCircle(0,0,r,BUMPER); //position is computed in updatePhysics
+			bumper = makeCircle(0,0,r,BUMPER); //position is computed in updatePhysics
 			movingBumpers.push(addEntity(bumper));
 			//move speed, in pixels per frame
 			var speed = (0.2+rand()*0.2)*(rand()>0.5 ? -1:1);
@@ -1183,11 +1253,12 @@ window.onload = function(){
 			bumper.da = speed/dist;
 			bumper.a = angle;
 			bumper.d = dist;
-
-			if(i>1){
-				//Add mirror bumpers on edges
-				bumper = cloneObject(bumper);
-				bumper.a += PI;
+		}
+		for(i=1 ; i<n ; i++){
+			//Add mirror bumpers on edges
+			for(j=0 ; j<i ; j++){
+				bumper = cloneObject(movingBumpers[i]);
+				bumper.a += 2*PI*(j+1)/(i+1);
 				movingBumpers.push(addEntity(bumper));
 			}
 		}
@@ -1213,6 +1284,29 @@ window.onload = function(){
 		//pads = [pads[1]];
 		//entities = entities.slice(0,-8).concat(pads);
 		//console.log(pads);
+
+
+		//add rings
+		rings = [];
+		rings.n = 0;
+		rings.cpt = 0;
+		var ring, ringAngle;
+		var radius = (tableWidth/2+pyth(tableWidth/2,tableWidth/2))/2; //some arbitrary radius
+		var nCircles = 6;
+		var nBranches = 11;
+		var startAngle = Math.random()*PI;
+		for(i=1 ; i<=nCircles ; i++){
+			for(j=1 ; j<=nBranches ; j++){
+				ringAngle = 2*PI*(j/nBranches) + i*0.1 + startAngle;
+				ring = makeEntity(CIRCLE,RING);
+				ring.r = RING_RADIUS;
+				rings[rings.n] = ring;
+				rings.n++;
+
+				ring.x = halfSize+Math.cos(ringAngle)*i*radius/nCircles;
+				ring.y = halfSize+Math.sin(ringAngle)*i*radius/nCircles;
+			}
+		}
 	}
 
 	function makeEntity(shape,kind, x, y){
@@ -1400,9 +1494,9 @@ window.onload = function(){
 
 	//set values to 0 if you don't want to change them, null if you want to reset them
 	function style(ctx, fill,stroke,lineWidth){
-		if(fill!==0) ctx.fillStyle = fill;
-		if(stroke!==0) ctx.strokeStyle = stroke;
-		if(lineWidth!==0) ctx.lineWidth = lineWidth;
+		if(fill) ctx.fillStyle = fill;
+		if(stroke) ctx.strokeStyle = stroke;
+		if(lineWidth) ctx.lineWidth = lineWidth;
 	}
 
 	// c: color string or canvas/image
@@ -1420,8 +1514,7 @@ window.onload = function(){
 		ctx.drawImage(src,x,y);
 	}
 
-	function drawCircle(ctx,x,y,radius,fill,stroke,width){
-		style(ctx,fill,stroke,width||2);
+	function drawCircle(ctx,x,y,radius,fill,stroke){
 		ctx.beginPath();
 		ctx.arc(x, y, radius, 0, 2 * PI, false);
 		if(fill){
@@ -1430,16 +1523,13 @@ window.onload = function(){
 		if(stroke){
 			ctx.stroke();
 		}
-		ctx.closePath();
 	}
 
-	function drawLine(ctx,x,y,x2,y2,color,width){
-		style(ctx,0,color,width||2);
+	function drawLine(ctx,x,y,x2,y2){
 		ctx.beginPath();
 		ctx.moveTo(x,y);
 		ctx.lineTo(x2,y2);
 		ctx.stroke();
-		//ctx.closePath();
 	}
 
 	function clearCanvas(ctx){
@@ -1450,14 +1540,20 @@ window.onload = function(){
 	// Input
 	//-----------------------------------------------------------
 
+
 	var keyMap = {
-		37: "left",
-		38: "up",
-		39: "right",
+		37: "left", // left arrow
+		65: "left", // a
+		81: "left", // q
+		38: "up",   // up arrow
+		90: "up",	// z
+		87: "up",	// w
+		83: "down",	// d
 		40: "down",
+		39: "right",// right arrow
+		68: "right",//d
 		32: "space",
 		27: "esc",
-		82: "R",
 		13: "Enter"
 	};
 	//Set up key listener
