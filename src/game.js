@@ -361,7 +361,7 @@ window.onload = function(){
 	function processInput(){
 		//boost sequence
 		if(!started){
-			if(mouse.right){
+			if(mouse.right || keys.space){
 				if(startCpt<START_CPT_MAX){
 					startCpt++;
 				}
@@ -1453,14 +1453,20 @@ window.onload = function(){
 	// Input
 	//-----------------------------------------------------------
 
+
 	var keyMap = {
-		37: "left",
-		38: "up",
-		39: "right",
+		37: "left", // left arrow
+		65: "left", // a
+		81: "left", // q
+		38: "up",   // up arrow
+		90: "up",	// z
+		87: "up",	// w
+		83: "down",	// d
 		40: "down",
+		39: "right",// right arrow
+		68: "right",//d
 		32: "space",
 		27: "esc",
-		82: "R",
 		13: "Enter"
 	};
 	//Set up key listener
