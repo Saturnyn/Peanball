@@ -329,6 +329,10 @@ window.onload = function(){
 	//basic physics settings
 	var MAX_SPEED = 10;
 	var GRAVITY = 0.2;
+	var IDLE_MONSTER_SPEED = 1;
+	var FLEEING_MONSTER_SPEED = 0.8;
+	var ATTACK_MONSTER_SPEED = 1.2;
+
 
 	//boost settings (paddle and left click)
 	var MIN_BOOST_CPT = 1;
@@ -356,7 +360,6 @@ window.onload = function(){
 		started = false;
 		entities = [];
 		monsters = [];
-		monsters.n = 0;
 		buildBackground();
 		buildObjects();
 	}
@@ -377,7 +380,7 @@ window.onload = function(){
 					ball.boostY = speed*Math.sin(startAngle);
 					ball.boostCpt = MIN_BOOST_CPT+BOOST_CPT_BONUS*boostRatio;
 					started = true;
-
+					ball.boostType = "start";
 					//console.log(boostRatio,startAngle,ball);
 				}
 			}
@@ -453,9 +456,10 @@ window.onload = function(){
 			ball.v.x = tempVector.x;
 			ball.v.y = tempVector.y;
 
-			ball.boostCpt = MIN_BOOST_CPT+0.5*BOOST_CPT_BONUS;
+			ball.boostCpt = MIN_BOOST_CPT+0.8*BOOST_CPT_BONUS;
 			ball.boostX = ball.v.x;
 			ball.boostY = ball.v.y;
+			ball.boostType = "click";
 
 			canBoost = 0;
 			mouse.left = false;
@@ -465,19 +469,50 @@ window.onload = function(){
 	function updatePhysics(){
 		var i,len, e,eLen;
 
-		//rotate moving bumpers & monsters
+		//rotate moving bumpers
 		len=movingBumpers.length;
-		eLen = movingBumpers.length + monsters.n;
-		for(i=0 ; i<eLen ; i++){
-			if(i<len){
-				e = movingBumpers[i];
-			}else{
-				e = monsters[i-len];
-			}
+		for(i=0 ; i<len ; i++){
+			e = movingBumpers[i];
+
 			e.a += e.da;
 			//moving bumper
 			e.x = HALF_SIZE+Math.cos(e.a)* e.d;
 			e.y = HALF_SIZE+Math.sin(e.a)* e.d;
+		}
+
+		//move monsters
+		len=monsters.length;
+		for(i=0 ; i<len ; i++){
+			e = monsters[i];
+
+			if(e.elt!=ball.elt && ball.elt!=NO_ELEMENT){
+				var dist = pyth(ball.x - e.x, ball.y - e.y);
+				if(dist<200){
+					//ball is within IA range
+					if(e.elt == killMap[ball.elt]){
+						//go hide home
+						e.tx = e.hx;
+						e.ty = e.hy;
+					}else{
+						//attack player
+						e.tx = ball.x;
+						e.ty = ball.y;
+					}
+				}
+			}
+			dx = e.tx- e.x;
+			dy = e.ty - e.y;
+			if(dx*dx + dy*dy < 25){
+				//reached target => define new target on the circle
+				var angle = rand()*PI*2;
+				e.tx = HALF_SIZE + Math.cos(angle)*RING_ZONE_RADIUS;
+				e.ty = HALF_SIZE + Math.sin(angle)*RING_ZONE_RADIUS;
+			}else{
+				//move toward target
+				d = pyth(dx,dy);
+				e.x += dx*IDLE_MONSTER_SPEED/d;
+				e.y += dy*IDLE_MONSTER_SPEED/d;
+			}
 		}
 
 		//Update ball physics
@@ -543,7 +578,7 @@ window.onload = function(){
 			var prevVx = ball.v.x;
 			var prevVy = ball.v.y;
 			eLen = entities.length;
-			len = eLen + monsters.n;
+			len = eLen + monsters.length;
 			for(i=0 ; i<len ; i++){
 				if(i<eLen){
 					e = entities[i];
@@ -569,25 +604,39 @@ window.onload = function(){
 								if(e.dead /*e.elt==ball.elt*/){
 									//no collision with dead element
 									continue;
-								}else{
-									if(e.elt != ball.elt){
-										//ball loses power on incompatible elements
-										ball.elt = NO_ELEMENT;
-									}
 								}
 							}
 
 							e.collide = true;
 							//compute vector going from entity center to ball center
 							collisionVector.x = ball.x- e.x;
-							tempVector.y = ball.y- e.y;
+							collisionVector.y = ball.y- e.y;
 							l = pyth(collisionVector.x,collisionVector.y);
+
+							if(e.kind == MONSTER){
+								if(e.elt != ball.elt){
+									if(ball.elt != NO_ELEMENT){
+										//ball loses power on incompatible elements
+										ball.elt = NO_ELEMENT;
+									}else{
+										//else it loses a ring
+										if(rings.n<rings.length){
+											rings.n++;
+											ring = rings[rings.n-1];
+											ring.m = e;
+											ring.dx = collisionVector.x * (MONSTER_RADIUS-RING_RADIUS)/l;
+											ring.dy = collisionVector.y * (MONSTER_RADIUS-RING_RADIUS)/l;
+										}
+									}
+								}
+							}
+
+
 							//compute how much do we need to move ball to put it out of collision
 							collisionVector.l = e.r+ball.r-l;
 							//and normalize vector
 							collisionVector.x = collisionVector.x/l;
 							collisionVector.y = collisionVector.y/l;
-
 						}
 					}else if(e.shape==LINE){
 
@@ -708,7 +757,7 @@ window.onload = function(){
 										var boostX = collisionVector.x*speed;
 										var boostY = collisionVector.y*speed;
 
-										if(!ball.boostCpt){
+										if(!ball.boostCpt || ball.boostType != PADDLE){
 											//initial boost
 											console.log("=============");
 											ball.boostCpt = boostCpt;
@@ -720,6 +769,7 @@ window.onload = function(){
 											ball.boostX = 0.2*boostX + ball.boostX;
 											ball.boostY = 0.2*boostY + ball.boostY;
 										}
+										ball.boostType = PADDLE;
 										console.log("boostRatio",boostRatio,ball.boostCpt,"=>",ball.boostX,ball.boostY);
 
 										//randomize a little to avoid trajectories too often the same
@@ -773,6 +823,9 @@ window.onload = function(){
 							canBoost = true;
 						}else if(e.kind==MONSTER){
 							bounciness = 1.1;
+							if(e.elt==ball.elt){
+								canBoost = true;
+							}
 						}
 						collisionVector.x *= cos * bounciness * vl;
 						collisionVector.y *= cos * bounciness * vl;
@@ -791,6 +844,7 @@ window.onload = function(){
 		var ring;
 		var ballRadProd = (BALL_RADIUS+RING_RADIUS)*(BALL_RADIUS+RING_RADIUS);
 		var monsterRadProd = (BALL_RADIUS-MONSTER_RADIUS)*(BALL_RADIUS-MONSTER_RADIUS);
+		var lenMonsters = monsters.length;
 		for(i=0 ; i<rings.n ; i++){
 			ring = rings[i];
 			//Check ball collision first
@@ -808,7 +862,7 @@ window.onload = function(){
 			}else{
 				if(!ring.m){
 					//check monsters collisions
-					for(var j=0 ; j<monsters.n ; j++){
+					for(var j= 0 ; j<lenMonsters ; j++){
 						var monster = monsters[j];
 						rx = ring.x - monster.x;
 						ry = ring.y - monster.y;
@@ -905,6 +959,7 @@ window.onload = function(){
 		clearCanvas(renderCtx);
 		clearCanvas(entityCtx);
 
+		var i,len;
 		if(drawFx){
 			//save fxCtx
 			drawImage(renderCtx,fxCanvas,0,0);
@@ -929,6 +984,85 @@ window.onload = function(){
 		}else{
 			clearCanvas(fxCtx);
 		}
+
+		//draw monsters
+		var size = (MONSTER_SPRITE_SIZE+MONSTER_SPRITE_MARGIN*2);
+		for(i=0, len=monsters.length ; i<len ; i++){
+			var m = monsters[i];
+			var a = 1;
+
+			if(m.dead){
+				//dead monster
+				m.cpt-=10; //fade out faster than fade in
+				if(m.cpt<=0){
+					//monster has finshed dying !
+					// => respawn
+					spawnMonster(m);
+				}else{
+					//Fade out
+					a = m.cpt/50;
+				}
+			}else{
+				if(m.cpt<50){
+					//Fade in monster
+					m.cpt++;
+					a = m.cpt/50;
+				}
+			}
+			if(m.colCpt>0){
+				m.colCpt--;
+			}
+
+			var vulnerable = killMap[ball.elt] == m.elt;
+			var same = ball.elt == m.elt;
+
+			//Draw halo for elements that are not the same as the current ball element
+			style(entityCtx,
+				same ? VOID_COLOR : vulnerable ? ELEMENT_COLORS[m.elt][0] : DANGER_COLOR,
+				same ? (m.colCpt>0 ? COLLIDE_COLOR : WALL_COLOR) : DANGER_COLOR, //ELEMENT_COLORS[m.elt][2] || ELEMENT_COLORS[m.elt][0],	//added a third value to tweak border color of monsters
+				2);
+			entityCtx.globalAlpha = a * (same ? 1 : vulnerable ? 0.2 : 0.4);
+			drawCircle(entityCtx, m.x-cameraX, m.y-cameraY, m.r,YES);
+			if(m.elt==AIR){
+				//We want air inner sprite to be transparent
+				entityCtx.globalAlpha = 1;
+				entityCtx.globalCompositeOperation = "destination-out";
+				drawCircle(entityCtx, m.x-cameraX, m.y-cameraY, 17,YES);
+				entityCtx.globalCompositeOperation = "source-over";
+			}
+
+
+			//Apply cpt fade for basic destroy/appear fade
+			entityCtx.globalAlpha = a;
+
+			if(!vulnerable){
+				//incompatible element have a border
+				drawCircle(entityCtx, m.x-cameraX, m.y-cameraY, m.r,NO,YES);
+			}
+
+			entityCtx.globalAlpha = a * (same ? 0.4 : vulnerable ? 0.7 : 1);
+
+
+			dx = 0;
+			dy = 0;
+			if(vulnerable){
+				//Shake in fear !
+				dx = 3*(Math.random()-0.5);
+				dy = 3*(Math.random()-0.5);
+			}
+
+			if(same){
+				//non targetable element are faded out
+				entityCtx.globalAlpha = a * 0.4;
+			}
+			entityCtx.drawImage(monsterCanvas,
+				m.elt*size,0,size,size,
+				m.x-size/2 - cameraX + dx, m.y-size/2 - cameraY + dy,size,size
+			);
+
+			//drawCircle(entityCtx, m.x-cameraX, m.y-cameraY, m.r,null,ELT_COLORS[m.elt][0]);
+		}
+		entityCtx.globalAlpha = 1;
 
 		//draw rings
 		rings.cpt++;
@@ -955,7 +1089,7 @@ window.onload = function(){
 		}
 
 		var dx,dy;
-		for(var i=0 , len=entities.length ; i<len ; i++){
+		for(i=0 , len=entities.length ; i<len ; i++){
 			var e = entities[i];
 			var x = e.x-cameraX;
 			var y = e.y-cameraY;
@@ -1061,119 +1195,13 @@ window.onload = function(){
 			}
 		}
 
-
-		//draw monsters
-		var size = (MONSTER_SPRITE_SIZE+MONSTER_SPRITE_MARGIN*2);
-		for(i=0 ; i<monsters.n ; i++){
-			var m = monsters[i];
-			var a = 1;
-
-			if(m.dead){
-				//dead monster
-				m.cpt-=10; //fade out faster than fade in
-				if(m.cpt<=0){
-					//remove dead monster (swap with the end of the list)
-					a = monsters[monsters.n-1];
-					monsters[i] = a;
-					monsters[monsters.n-1] = m;
-					monsters.n--;
-					i--;
-					continue;
-				}else{
-					//Fade out
-					a = m.cpt/50;
-				}
-			}else{
-				if(m.cpt<50){
-					//Fade in monster
-					m.cpt++;
-					a = m.cpt/50;
-				}
-			}
-
-			var vulnerable = killMap[ball.elt] == m.elt;
-			var same = ball.elt == m.elt;
-
-			//Draw halo for elements that are not the same as the current ball element
-			style(entityCtx,
-				same ? VOID_COLOR : vulnerable ? ELEMENT_COLORS[m.elt][0] : DANGER_COLOR,
-				same ? WALL_COLOR : DANGER_COLOR, //ELEMENT_COLORS[m.elt][2] || ELEMENT_COLORS[m.elt][0],	//added a third value to tweak border color of monsters
-				2);
-			entityCtx.globalAlpha = a * (same ? 1 : vulnerable ? 0.2 : 0.5);
-			drawCircle(entityCtx, m.x-cameraX, m.y-cameraY, m.r,YES);
-			if(m.elt==AIR){
-				//We want air inner sprite to be transparent
-				entityCtx.globalAlpha = 1;
-				entityCtx.globalCompositeOperation = "destination-out";
-				drawCircle(entityCtx, m.x-cameraX, m.y-cameraY, 17,YES);
-				entityCtx.globalCompositeOperation = "source-over";
-			}
-
-
-			//Apply cpt fade for basic destroy/appear fade
-			entityCtx.globalAlpha = a;
-
-			if(!vulnerable){
-				//incompatible element have a border
-				drawCircle(entityCtx, m.x-cameraX, m.y-cameraY, m.r,NO,YES);
-			}
-
-			entityCtx.globalAlpha = a * (same ? 0.4 : vulnerable ? 0.7 : 1);
-
-
-			dx = 0;
-			dy = 0;
-			if(vulnerable){
-				//Shake in fear !
-				dx = 3*(Math.random()-0.5);
-				dy = 3*(Math.random()-0.5);
-			}
-
-			if(same){
-				//non targetable element are faded out
-				entityCtx.globalAlpha = a * 0.4;
-			}
-			entityCtx.drawImage(monsterCanvas,
-				m.elt*size,0,size,size,
-				m.x-size/2 - cameraX + dx, m.y-size/2 - cameraY + dy,size,size
-			);
-
-			//drawCircle(entityCtx, m.x-cameraX, m.y-cameraY, m.r,null,ELT_COLORS[m.elt][0]);
-		}
-		entityCtx.globalAlpha = 1;
-
-
 		//compose final rendering
 		drawImage(renderCtx, bgCanvas, -cameraX, -cameraY);
 		if(drawFx) drawImage(renderCtx, fxCanvas, 0, 0);
 		drawImage(renderCtx, entityCanvas, 0, 0);
 	}
 
-	function updateGameWorld(){
-		//make sure we always have enough monsters
-		var nMonsters = 4;
-		while(monsters.n<nMonsters){
-			var monster;
-			if(monsters.length==monsters.n){
-				monster = makeEntity(CIRCLE,MONSTER);
-				monsters.push(monster);
-				monster.elt = monsters.n%4;
-				monster.r = MONSTER_RADIUS;
-			}else{
-				monster = monsters[monsters.n];
-			}
-			monsters.n++;
-
-			var bumper = movingBumpers[monster.elt];
-			monster.x = bumper.x;
-			monster.y = bumper.y;
-			monster.cpt = 0;
-			monster.dead = 0;
-			monster.da = -2*bumper.da;
-			monster.a = bumper.a;
-			monster.d = bumper.d;
-		}
-
+	function checkGame(){
 		//Detect ball out of screen ie player losing
 		//bring back to the screen and prepare start sequence
 		var stop = false;
@@ -1215,7 +1243,7 @@ window.onload = function(){
 		updatePhysics();
 		updateCamera();
 		render();
-		updateGameWorld();
+		checkGame();
 
 		if(ste) ste();
 
@@ -1248,7 +1276,7 @@ window.onload = function(){
 		var bumper;
 		var i,j;
 		for(i=0 ; i<n ; i++){
-			var r = MONSTER_RADIUS+4;
+			var r = MONSTER_RADIUS-4;
 			var dist = 2*r+(BUMPER_ZONE_RADIUS-2*r)*i/n >>0;
 			var angle = rand()*2*PI;
 			bumper = makeCircle(0,0,r,BUMPER); //position is computed in updatePhysics
@@ -1312,6 +1340,45 @@ window.onload = function(){
 				ring.y = HALF_SIZE+Math.sin(ringAngle)*i*RING_ZONE_RADIUS/nCircles;
 			}
 		}
+
+
+		//Add monsters
+		for(i=0 ; i<4 ; i++){
+			var monster = makeEntity(CIRCLE,MONSTER);
+			monsters.push(monster);
+			monster.elt = i;
+			monster.r = MONSTER_RADIUS;
+
+			//Define starting point: far from opposite element
+			if(i===0 || i==1){
+				monster.sy = TABLE_HEIGHT;
+			}else{
+				monster.sy = TOTAL_SIZE-TABLE_HEIGHT;
+			}
+			if(i===0 || i==3){
+				monster.sx = TABLE_HEIGHT;
+			}else{
+				monster.sx = TOTAL_SIZE-TABLE_HEIGHT;
+			}
+			//define "home" position
+			monster.hx = HALF_SIZE + 0.5*TABLE_WIDTH*(i==1 ? 1 : i==3 ? -1 : 0);
+			monster.hy = HALF_SIZE + 0.5*TABLE_WIDTH*(i===0 ? 1 : i==2 ? -1 : 0);
+
+			spawnMonster(monster);
+		}
+	}
+
+	function spawnMonster(monster){
+		monster.tx = monster.hx;
+		monster.ty = monster.hy;
+		monster.x = monster.sx;
+		monster.y = monster.sy;
+		monster.cpt = 0;
+		monster.dead = false;
+
+		monster.da = 0;
+		monster.a = 0;
+		monster.d = 1;
 	}
 
 	function makeEntity(shape,kind, x, y){
