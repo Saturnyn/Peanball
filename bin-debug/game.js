@@ -367,14 +367,15 @@ window.onload = function(){
 				}
 			}else{
 				if(startCpt>0){
-					var boostRatio = startCpt / START_CPT_MAX;
-					if(boostRatio>1) boostRatio = 1;
+					var boostRatio = 0.1 + 0.9*startCpt / START_CPT_MAX;
 					//Space boost: based on space held down duration + random x nudge
 					var speed = MIN_BOOST_SPEED+BOOST_SPEED_BONUS*boostRatio;
 					ball.boostX = speed*Math.cos(startAngle);
 					ball.boostY = speed*Math.sin(startAngle);
 					ball.boostCpt = MIN_BOOST_CPT+BOOST_CPT_BONUS*boostRatio;
 					started = true;
+
+					console.log(boostRatio,startAngle,ball);
 				}
 			}
 		}
@@ -1008,8 +1009,8 @@ window.onload = function(){
 
 			if(m.dead){
 				//dead monster
-				m.cpt-=10;
-				if(m.cpt===0){
+				m.cpt-=10; //fade out faster than fade in
+				if(m.cpt<=0){
 					//remove dead monster (swap with the end of the list)
 					a = monsters[monsters.n-1];
 					monsters[i] = a;
@@ -1130,6 +1131,8 @@ window.onload = function(){
 			started = false;
 			startCpt = 0;
 			ball.elt = NO_ELEMENT;
+			ball.v.x = 0;
+			ball.v.y = 0;
 		}
 	}
 
