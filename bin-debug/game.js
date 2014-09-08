@@ -29,6 +29,8 @@ window.onload = function(){
 	var HALF_SIZE = TOTAL_SIZE/2;
 	var TILE_SIZE = 20;
 
+	var STATUS_HEIGHT = 50;
+
 	var screenWidth;
 	var screenHeight;
 	var screenMinSize;
@@ -48,6 +50,9 @@ window.onload = function(){
 	var entityCanvas = makeCanvas();
 	var entityCtx = getContext(entityCanvas);
 
+	var statusCanvas = makeCanvas();
+	var statusCtx = getContext(statusCanvas);
+
 	var monsterCanvas = makeCanvas(4*(MONSTER_SPRITE_SIZE+2*MONSTER_SPRITE_MARGIN),MONSTER_SPRITE_SIZE+2*MONSTER_SPRITE_MARGIN);
 	var monsterCtx = getContext(monsterCanvas);
 
@@ -58,13 +63,15 @@ window.onload = function(){
 
 	window.onresize = function(){
 		screenWidth = clamp(win.innerWidth,TABLE_WIDTH,TOTAL_SIZE);
-		screenHeight = clamp(win.innerHeight,TABLE_WIDTH,TOTAL_SIZE);
+		screenHeight = clamp(win.innerHeight-STATUS_HEIGHT,TABLE_WIDTH,TOTAL_SIZE);
 		screenMinSize = Math.min(screenWidth,screenHeight);
-		entityCanvas.width = fxCanvas.width = renderCanvas.width = screenWidth = screenWidth-screenWidth%2;
+		statusCanvas.width = entityCanvas.width = fxCanvas.width = renderCanvas.width = screenWidth = screenWidth-screenWidth%2;
 		entityCanvas.height = fxCanvas.height = renderCanvas.height = screenHeight = screenHeight-screenHeight%2;
+		statusCanvas.height = STATUS_HEIGHT;
 	};
 	body.onresize();
 
+	body.appendChild(statusCanvas);
 	body.appendChild(renderCanvas);
 
 	//------------------------------------------------------------------------------------------------------------------
@@ -78,7 +85,7 @@ window.onload = function(){
 
 	var WALL_COLOR = "#08e";//"#ddd";
 	var VOID_COLOR = "#000";
-	var COLLIDE_COLOR = "#0d0";
+	var COLLIDE_COLOR = "#8f8";
 	var DANGER_COLOR = "#f02";
 
 
@@ -308,8 +315,8 @@ window.onload = function(){
 	killMap[AIR] = EARTH;
 
 	var MONSTER_RADIUS = 38;
-	var BALL_RADIUS = 14;
-	var RING_RADIUS = 6;
+	var BALL_RADIUS = 16;
+	var RING_RADIUS = 8;
 
 	//ball,walls,slopes,padles (everything that isn't added/removed)
 	var entities;
@@ -318,6 +325,17 @@ window.onload = function(){
 	var ball;
 	var pads;
 	var movingBumpers;
+
+	var MAX_LIVES = 5;
+	var lives;
+	var startTime;
+
+	var STATUS_TEXT_DURATION = 50;
+	var ringCpt;
+	var ringStatus;
+	var lostLifeCpt;
+	var hurtCpt;
+
 
 	//Start seq via right button
 	var started = false;
@@ -340,7 +358,12 @@ window.onload = function(){
 	var MIN_BOOST_SPEED = 0.2*MAX_SPEED;
 	var BOOST_SPEED_BONUS = 0.8*MAX_SPEED;
 
-	var canBoost = false; //left click boost
+	var ballBoostX = 0;
+	var ballBoostY = 0;
+	var ballBoostCpt = 0;
+	var ballBoostType;
+	var CAN_BOOST_DURATION = 150;
+	var canBoostCpt;
 
 	//line equation
 	var tempLineEq = {};
@@ -356,8 +379,11 @@ window.onload = function(){
 	//------------------------------------------------------------------------------------------------------------------
 
 	function init(){
+		startTime = Date.now();
 		startCpt = 0;
 		started = false;
+		lives = MAX_LIVES;
+		canBoostCpt = 0;
 		entities = [];
 		monsters = [];
 		buildBackground();
@@ -376,11 +402,11 @@ window.onload = function(){
 					var boostRatio = 0.1 + 0.9*startCpt / START_CPT_MAX;
 					//Space boost: based on space held down duration + random x nudge
 					var speed = MIN_BOOST_SPEED+BOOST_SPEED_BONUS*boostRatio;
-					ball.boostX = speed*Math.cos(startAngle);
-					ball.boostY = speed*Math.sin(startAngle);
-					ball.boostCpt = MIN_BOOST_CPT+BOOST_CPT_BONUS*boostRatio;
+					ballBoostX = speed*Math.cos(startAngle);
+					ballBoostY = speed*Math.sin(startAngle);
+					ballBoostCpt = MIN_BOOST_CPT+BOOST_CPT_BONUS*boostRatio;
 					started = true;
-					ball.boostType = "start";
+					ballBoostType = "start";
 					//console.log(boostRatio,startAngle,ball);
 				}
 			}
@@ -436,6 +462,7 @@ window.onload = function(){
 
 		}
 
+
 		//DEBUG teleport
 		if(mouse.middle){
 			startCpt = 0;
@@ -443,26 +470,31 @@ window.onload = function(){
 			ball.x = mouse.x;
 			ball.y = mouse.y;
 			ball.v.x = ball.v.y = 0;
-			ball.boostCpt = 0;
+			ballBoostCpt = 0;
 			mouse.middle = false;
 			//console.log("mouse teleport",ball);
 		}
 
+
+
 		//left click boost
-		if(mouse.left && canBoost){
+		if(mouse.left && ball.elt != NO_ELEMENT && ballBoostCpt===0 && canBoostCpt>0){
 			tempVector.x = mouse.x-ball.x;
 			tempVector.y = mouse.y-ball.y;
-			normalize(tempVector, MIN_BOOST_SPEED+0.5*BOOST_SPEED_BONUS);
+			normalize(tempVector, MIN_BOOST_SPEED +0.5*BOOST_SPEED_BONUS);
 			ball.v.x = tempVector.x;
 			ball.v.y = tempVector.y;
 
-			ball.boostCpt = MIN_BOOST_CPT+0.8*BOOST_CPT_BONUS;
-			ball.boostX = ball.v.x;
-			ball.boostY = ball.v.y;
-			ball.boostType = "click";
+			//ballBoostCpt = MIN_BOOST_CPT+0.8*BOOST_CPT_BONUS;
+			ballBoostCpt = 10;
+			ballBoostX = ball.v.x;
+			ballBoostY = ball.v.y;
+			ballBoostType = "click";
 
-			canBoost = 0;
 			mouse.left = false;
+		}
+		if(canBoostCpt>0){
+			canBoostCpt--;
 		}
 	}
 
@@ -536,6 +568,12 @@ window.onload = function(){
 				maxSpeed *= (0.5+0.5*distanceToCenter/range);
 			}
 
+			/*
+			if(ballBoostCpt>0){
+				gravity = 0;
+			}
+			*/
+
 			//applied gravity depends on which quadrant the ball is in
 			var x = ball.x - HALF_SIZE,
 				y = ball.y - HALF_SIZE;
@@ -558,10 +596,10 @@ window.onload = function(){
 			ball.v.y += gy;
 
 			//Apply boost
-			if(ball.boostCpt>0){
-				ball.boostCpt--;
-				ball.v.x += ball.boostX;
-				ball.v.y += ball.boostY;
+			if(ballBoostCpt>0){
+				ballBoostCpt--;
+				ball.v.x += ballBoostX;
+				ball.v.y += ballBoostY;
 			}
 
 			//make sure speed can't be too high
@@ -599,6 +637,7 @@ window.onload = function(){
 									//ball kills monster of opposite element
 									e.dead = true;
 									//ball.elt = NO_ELEMENT;
+									canBoostCpt = CAN_BOOST_DURATION;
 								}
 
 								if(e.dead /*e.elt==ball.elt*/){
@@ -613,8 +652,16 @@ window.onload = function(){
 							collisionVector.y = ball.y- e.y;
 							l = pyth(collisionVector.x,collisionVector.y);
 
+							if(e.kind == BUMPER && ball.elt != NO_ELEMENT){
+								canBoostCpt += 50;
+								if(canBoostCpt > CAN_BOOST_DURATION){
+									canBoostCpt = CAN_BOOST_DURATION;
+								}
+							}
+
 							if(e.kind == MONSTER){
 								if(e.elt != ball.elt){
+									hurtCpt = STATUS_TEXT_DURATION;
 									if(ball.elt != NO_ELEMENT){
 										//ball loses power on incompatible elements
 										ball.elt = NO_ELEMENT;
@@ -626,6 +673,9 @@ window.onload = function(){
 											ring.m = e;
 											ring.dx = collisionVector.x * (MONSTER_RADIUS-RING_RADIUS)/l;
 											ring.dy = collisionVector.y * (MONSTER_RADIUS-RING_RADIUS)/l;
+
+											ringCpt = STATUS_TEXT_DURATION;
+											ringStatus = -1;
 										}
 									}
 								}
@@ -757,27 +807,27 @@ window.onload = function(){
 										var boostX = collisionVector.x*speed;
 										var boostY = collisionVector.y*speed;
 
-										if(!ball.boostCpt || ball.boostType != PADDLE){
+										if(!ballBoostCpt || ballBoostType != PADDLE){
 											//initial boost
-											console.log("=============");
-											ball.boostCpt = boostCpt;
-											ball.boostX = boostX;
-											ball.boostY = boostY;
+											//console.log("=============");
+											ballBoostCpt = boostCpt;
+											ballBoostX = boostX;
+											ballBoostY = boostY;
 										}else{
 											//add a part of previous boost (give big priority to initial impact)
-											ball.boostCpt = boostCpt;
-											ball.boostX = 0.2*boostX + ball.boostX;
-											ball.boostY = 0.2*boostY + ball.boostY;
+											ballBoostCpt = boostCpt;
+											ballBoostX = 0.2*boostX + ballBoostX;
+											ballBoostY = 0.2*boostY + ballBoostY;
 										}
-										ball.boostType = PADDLE;
-										console.log("boostRatio",boostRatio,ball.boostCpt,"=>",ball.boostX,ball.boostY);
+										ballBoostType = PADDLE;
+										canBoostCpt = CAN_BOOST_DURATION;
+										//console.log("boostRatio",boostRatio,ballBoostCpt,"=>",ballBoostX,ballBoostY);
 
 										//randomize a little to avoid trajectories too often the same
-										ball.boostX *= (0.8+rand()*0.4);
-										ball.boostY *= (0.8+rand()*0.4);
+										ballBoostX *= (0.8+rand()*0.4);
+										ballBoostY *= (0.8+rand()*0.4);
 
 										ball.elt = e.elt;
-										canBoost = true;
 										continue;
 									}
 								}
@@ -785,7 +835,7 @@ window.onload = function(){
 						}
 					}
 					if(e.collide){
-
+						ballBoostCpt = 0;
 						ball.collide = true;
 						e.colCpt = 20; //used to change color on collided bumpers
 
@@ -818,14 +868,12 @@ window.onload = function(){
 						if(sin<0) sin=-sin;
 
 						var bounciness =  0.2;
+
+
 						if(e.kind==BUMPER){
 							bounciness = 1.1;
-							canBoost = true;
 						}else if(e.kind==MONSTER){
 							bounciness = 1.1;
-							if(e.elt==ball.elt){
-								canBoost = true;
-							}
 						}
 						collisionVector.x *= cos * bounciness * vl;
 						collisionVector.y *= cos * bounciness * vl;
@@ -843,6 +891,7 @@ window.onload = function(){
 		//rings
 		var ring;
 		var ballRadProd = (BALL_RADIUS+RING_RADIUS)*(BALL_RADIUS+RING_RADIUS);
+		var ballAttractionProd = ballRadProd*2;
 		var monsterRadProd = (BALL_RADIUS-MONSTER_RADIUS)*(BALL_RADIUS-MONSTER_RADIUS);
 		var lenMonsters = monsters.length;
 		for(i=0 ; i<rings.n ; i++){
@@ -859,7 +908,16 @@ window.onload = function(){
 				rings[rings.n-1] = ring;
 				i--;
 				rings.n--;
+
+				ringCpt = STATUS_TEXT_DURATION;
+				ringStatus = 1;
+				if(rings.n===0) gameOver();
 			}else{
+				if(prod < ballAttractionProd){
+					//ball attracts rings
+					ring.x = ring.x - rx*0.3;
+					ring.y = ring.y - ry*0.3;
+				}
 				if(!ring.m){
 					//check monsters collisions
 					for(var j= 0 ; j<lenMonsters ; j++){
@@ -945,12 +1003,14 @@ window.onload = function(){
 
 		if(started){
 			//smooth transition to ideal position
-			cameraX += (x-cameraX)*0.3;
-			cameraY += (y-cameraY)*0.3;
+			cameraX += (x-cameraX)*0.1;
+			cameraY += (y-cameraY)*0.1;
 		}else{
 			cameraX = x;
 			cameraY = y;
 		}
+		cameraX = cameraX >>0;
+		cameraY = cameraY >>0;
 	}
 
 
@@ -975,7 +1035,7 @@ window.onload = function(){
 			clearCanvas(renderCtx);
 
 			style(fxCtx, ELEMENT_COLORS[ball.elt][1]);
-			if(ball.boostCpt>0){
+			if(ballBoostCpt>0){
 				//Draw boost afterburner
 				drawCircle(fxCtx,ball.prevX-cameraX,ball.prevY-cameraY,6,YES);
 			}else{
@@ -983,6 +1043,30 @@ window.onload = function(){
 			}
 		}else{
 			clearCanvas(fxCtx);
+		}
+
+		//draw rings
+		rings.cpt++;
+		//pulse color
+		var color = 0xaa + Math.cos(rings.cpt/20)*0x22 >>0;
+		color = color.toString(16);
+		style(entityCtx,null,"#"+color+color+"00",2);
+
+		var twoPi = 2*PI;
+		var minx = cameraX-RING_RADIUS;
+		var maxx = cameraX+screenWidth+RING_RADIUS;
+		var miny = cameraY-RING_RADIUS;
+		var maxy = cameraY+screenWidth+RING_RADIUS;
+		var rx,ry;
+		for(i=0 ; i<rings.n ; i++){
+			var ring = rings[i];
+			rx = ring.x;
+			ry = ring.y;
+			if( rx>minx && rx<maxx && ry>miny && ry<maxy){
+				entityCtx.beginPath();
+				entityCtx.arc(rx-cameraX,ry-cameraY,RING_RADIUS,0,twoPi);
+				entityCtx.stroke();
+			}
 		}
 
 		//draw monsters
@@ -1021,7 +1105,7 @@ window.onload = function(){
 				same ? VOID_COLOR : vulnerable ? ELEMENT_COLORS[m.elt][0] : DANGER_COLOR,
 				same ? (m.colCpt>0 ? COLLIDE_COLOR : WALL_COLOR) : DANGER_COLOR, //ELEMENT_COLORS[m.elt][2] || ELEMENT_COLORS[m.elt][0],	//added a third value to tweak border color of monsters
 				2);
-			entityCtx.globalAlpha = a * (same ? 1 : vulnerable ? 0.2 : 0.4);
+			entityCtx.globalAlpha = a * (same ? 0.5 : vulnerable ? 0.2 : 0.4);
 			drawCircle(entityCtx, m.x-cameraX, m.y-cameraY, m.r,YES);
 			if(m.elt==AIR){
 				//We want air inner sprite to be transparent
@@ -1064,30 +1148,6 @@ window.onload = function(){
 		}
 		entityCtx.globalAlpha = 1;
 
-		//draw rings
-		rings.cpt++;
-		//pulse color
-		var color = 0xaa + Math.cos(rings.cpt/20)*0x22 >>0;
-		color = color.toString(16);
-		style(entityCtx,null,"#"+color+color+"00",2);
-
-		var twoPi = 2*PI;
-		var minx = cameraX-RING_RADIUS;
-		var maxx = cameraX+screenWidth+RING_RADIUS;
-		var miny = cameraY-RING_RADIUS;
-		var maxy = cameraY+screenWidth+RING_RADIUS;
-		var rx,ry;
-		for(i=0 ; i<rings.n ; i++){
-			var ring = rings[i];
-			rx = ring.x;
-			ry = ring.y;
-			if( rx>minx && rx<maxx && ry>miny && ry<maxy){
-				entityCtx.beginPath();
-				entityCtx.arc(rx-cameraX,ry-cameraY,RING_RADIUS,0,twoPi);
-				entityCtx.stroke();
-			}
-		}
-
 		var dx,dy;
 		for(i=0 , len=entities.length ; i<len ; i++){
 			var e = entities[i];
@@ -1095,18 +1155,16 @@ window.onload = function(){
 			var y = e.y-cameraY;
 			var fill, stroke, lineWidth;
 			if(e!=ball){
-				if(e.shape == CIRCLE){
-					//Bumper or monster
-					if(e.kind==BUMPER){
-						if(e.colCpt>0){
-							e.colCpt--;
-							stroke = COLLIDE_COLOR;
-						}else{
-							stroke = WALL_COLOR;
-						}
-						style(entityCtx,"#000",stroke, 2);
-						drawCircle(entityCtx,x,y, e.r,YES,YES);
+
+				if(e.shape == CIRCLE && e.kind == BUMPER){
+					if(e.colCpt>0){
+						e.colCpt--;
+						stroke = COLLIDE_COLOR;
+					}else{
+						stroke = WALL_COLOR;
 					}
+					style(entityCtx,"#000",stroke, 2);
+					drawCircle(entityCtx,x,y, e.r,YES,YES);
 				}else if(e.shape == LINE){
 					if(e.kind!=BACKGROUND){ //side walls are dawn in background
 						stroke = WALL_COLOR;
@@ -1153,7 +1211,7 @@ window.onload = function(){
 				dx = shake*rand() >> 0;
 				dy = shake*rand() >> 0;
 			}
-			if(canBoost){
+			if(ball.elt != NO_ELEMENT && canBoostCpt>0){
 				//Draw wings
 				//Draw cute wings
 				entityCtx.save();
@@ -1181,19 +1239,21 @@ window.onload = function(){
 					ball.y-cameraY +dy,
 					BALL_RADIUS,YES,YES);
 			}else{
-				entityCtx.beginPath();
-				entityCtx.arc(
-					ball.x-cameraX +dx,
-					ball.y-cameraY +dy,
-					ball.r,	angle+dAngle, angle-dAngle);
-				entityCtx.lineTo(
-					ball.x-cameraX +dx,
-					ball.y-cameraY +dy);
-				entityCtx.closePath();
-				entityCtx.fill();
-				entityCtx.stroke();
+				drawCamembert(entityCtx, ball.x-cameraX +dx, ball.y-cameraY +dy, ball.r, angle, dAngle, YES, YES);
 			}
 		}
+
+
+		/*
+		//if(ballBoostCpt>0){
+			style(entityCtx,0,"red",2);
+			drawLine(entityCtx, ball.x-cameraX, ball.y-cameraY , ball.x+ballBoostX*300-cameraX,ball.y+ballBoostY*300-cameraY);
+		//}
+		if(mouse.left){
+			style(bgCtx,"red");
+			drawCircle(bgCtx,mouse.x,mouse.y,5,true,true);
+		}
+		*/
 
 		//compose final rendering
 		drawImage(renderCtx, bgCanvas, -cameraX, -cameraY);
@@ -1232,7 +1292,122 @@ window.onload = function(){
 			ball.elt = NO_ELEMENT;
 			ball.v.x = 0;
 			ball.v.y = 0;
+
+			lostLifeCpt = STATUS_TEXT_DURATION;
+
+			lives--;
+			if(lives === 0){
+				gameOver();
+			}
 		}
+	}
+
+	function renderStatus(){
+		clearCanvas(statusCtx);
+
+		//Draw lives
+		var i,len;
+		var size = 9;
+		var margin = 14;
+		for(i=0 ; i<lives ; i++){
+			style(statusCtx,ELEMENT_COLORS[NO_ELEMENT][0],"red");
+			drawCamembert(statusCtx, 50 + STATUS_HEIGHT/2 + i * (size+margin), STATUS_HEIGHT/2, size, 0, 0.3, true);
+		}
+
+		if(hurtCpt>0){
+			hurtCpt--;
+		}
+
+		//Draw boost gauge
+		if(started){//} canBoostCpt>0 && ball.elt!=NO_ELEMENT){
+			var height = 20;
+			var width = 102;
+			var x =(screenWidth-width)/2 ;
+			var y =(STATUS_HEIGHT-height)/2;
+
+
+			style(statusCtx, TILE_LINE_COLOR_2);
+			fillRect(statusCtx,x,y,width,height);
+			if(hurtCpt){
+				style(statusCtx, "#f00");
+				statusCtx.globalAlpha = (hurtCpt/START_CPT_MAX);
+				fillRect(statusCtx,x-2,y-2,width+4,height+4);
+				statusCtx.globalAlpha = 1;
+			}
+
+
+
+			if(canBoostCpt>0 && ball.elt != NO_ELEMENT){
+				style(statusCtx, "#fff");
+				width = (width-2)*(canBoostCpt/CAN_BOOST_DURATION) >>0;
+				x = (screenWidth-width)/2+1;
+				fillRect(statusCtx,x,y,width,height);
+
+				//and wings
+				style(statusCtx,0,TILE_LINE_COLOR_2,2);
+				statusCtx.save();
+				statusCtx.translate(screenWidth/2,y+10);
+				statusCtx.rotate(-PI/2);
+				statusCtx.beginPath();
+				statusCtx.arc(-10,0,18,-0,-1.4,true);
+				statusCtx.lineTo(0,0);
+				statusCtx.closePath();
+				statusCtx.stroke();
+
+				statusCtx.beginPath();
+				statusCtx.arc(-10,0,18,0,1.4);
+				statusCtx.lineTo(0,0);
+				statusCtx.closePath();
+				statusCtx.stroke();
+
+				statusCtx.restore();
+			}
+		}
+
+		//Draw ring count
+		style(statusCtx,0,"#cc0",3);
+		drawCircle(statusCtx,screenWidth-20,STATUS_HEIGHT/2, 8, false,true);
+
+		//Write time
+		var time = (Date.now()-startTime)/1000 >> 0;
+		var min = (time/60 >>0);
+		var s = time%60;
+		if(s<10) s="0"+s;
+		time = min+":"+s;
+		style(statusCtx,"#fff");
+		statusCtx.font = "18px sans-serif";
+		statusCtx.textAlign="left";
+		statusCtx.textBaseline="middle";
+		statusCtx.fillText(time, 10,STATUS_HEIGHT/2);
+
+		if(!started){
+			statusCtx.textAlign="center";
+			var txt = startCpt <50 ? "Hold right mouse button" : "Release to launch !";
+			statusCtx.fillText(txt, screenWidth/2,STATUS_HEIGHT/2);
+		}
+
+		//Write ring count
+		var ringText = (rings.length-rings.n)+ " / " +rings.length;
+		if(ringCpt>0){
+			ringCpt--;
+			if(ringStatus>0){
+				style(statusCtx,"#0f0");
+				ringText = toChar(0x2191)+" "+ringText;
+			}else{
+				style(statusCtx,"#f00");
+				ringText = toChar(0x2193)+" "+ringText;
+			}
+		}
+		statusCtx.textAlign="right";
+		statusCtx.fillText( ringText, screenWidth-38,STATUS_HEIGHT/2);
+
+		if(lostLifeCpt>0){
+			lostLifeCpt--;
+		}
+	}
+
+	function gameOver(){
+
 	}
 
 	function tic(){
@@ -1243,6 +1418,7 @@ window.onload = function(){
 		updatePhysics();
 		updateCamera();
 		render();
+		renderStatus();
 		checkGame();
 
 		if(ste) ste();
@@ -1260,7 +1436,6 @@ window.onload = function(){
 	function buildObjects(){
 
 		//Create ball
-		canBoost = false;
 		ball = addEntity( makeCircle(HALF_SIZE, TOTAL_SIZE-50, BALL_RADIUS, BALL));
 		ball.v = {x: 0 , y:0};
 		ball.cpt = 0;
@@ -1608,6 +1783,15 @@ window.onload = function(){
 		ctx.clearRect(0,0,screenWidth,screenHeight);
 	}
 
+	function drawCamembert(ctx, x,y,r,angle,dAngle, fill, stroke){
+		ctx.beginPath();
+		ctx.arc(x,y,r, angle+dAngle, angle-dAngle);
+		ctx.lineTo(x,y);
+		ctx.closePath();
+		if(fill) ctx.fill();
+		if(stroke) ctx.stroke();
+	}
+
 	//-----------------------------------------------------------
 	// Input
 	//-----------------------------------------------------------
@@ -1673,8 +1857,7 @@ window.onload = function(){
 		}else{
 			mouse.left = isDown;
 		}
-		mouse.x = e.clientX + cameraX;
-		mouse.y = e.clientY + cameraY;
+		document.onmousemove(e);
 	}
 	document.onmousedown = function(e){
 		onmouse(true,e);
@@ -1684,7 +1867,7 @@ window.onload = function(){
 	};
 	document.onmousemove = function(e){
 		mouse.x = e.clientX + cameraX;
-		mouse.y = e.clientY + cameraY;
+		mouse.y = e.clientY + cameraY - STATUS_HEIGHT;
 	};
 
 	document.oncontextmenu = function(e){
@@ -1739,8 +1922,8 @@ var ste;
 
 			// Align top-left
 			stats.domElement.style.position = 'absolute';
-			stats.domElement.style.left = '0px';
-			stats.domElement.style.top = '0px';
+			stats.domElement.style.bottom = '0px';
+			stats.domElement.style.right = '0px';
 
 			document.body.appendChild( stats.domElement );
 
