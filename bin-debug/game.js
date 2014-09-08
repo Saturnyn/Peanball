@@ -343,6 +343,7 @@ window.onload = function(){
 	var startCpt = 0;
 	var startPulse = 0;
 	var startAngle = 0;
+	var restartCpt = 0;
 
 	//basic physics settings
 	var MAX_SPEED = 10;
@@ -391,8 +392,9 @@ window.onload = function(){
 	}
 
 	function processInput(){
+
 		//boost sequence
-		if(!started){
+		if(!started && !restartCpt){
 			if(mouse.right || keys.space){
 				if(startCpt<START_CPT_MAX){
 					startCpt++;
@@ -662,21 +664,18 @@ window.onload = function(){
 							if(e.kind == MONSTER){
 								if(e.elt != ball.elt){
 									hurtCpt = STATUS_TEXT_DURATION;
-									if(ball.elt != NO_ELEMENT){
-										//ball loses power on incompatible elements
-										ball.elt = NO_ELEMENT;
-									}else{
-										//else it loses a ring
-										if(rings.n<rings.length){
-											rings.n++;
-											ring = rings[rings.n-1];
-											ring.m = e;
-											ring.dx = collisionVector.x * (MONSTER_RADIUS-RING_RADIUS)/l;
-											ring.dy = collisionVector.y * (MONSTER_RADIUS-RING_RADIUS)/l;
+									ball.elt = NO_ELEMENT;
+									
+									//else it loses a ring
+									if(rings.n<rings.length){
+										rings.n++;
+										ring = rings[rings.n-1];
+										ring.m = e;
+										ring.dx = collisionVector.x * (MONSTER_RADIUS-RING_RADIUS)/l;
+										ring.dy = collisionVector.y * (MONSTER_RADIUS-RING_RADIUS)/l;
 
-											ringCpt = STATUS_TEXT_DURATION;
-											ringStatus = -1;
-										}
+										ringCpt = STATUS_TEXT_DURATION;
+										ringStatus = -1;
 									}
 								}
 							}
@@ -1179,7 +1178,7 @@ window.onload = function(){
 		}
 
 		//Draw ball
-		if(ball){
+		if(!restartCpt){
 			//mouth orientation
 			var angle;
 			if(!started){
@@ -1295,10 +1294,15 @@ window.onload = function(){
 
 			lostLifeCpt = STATUS_TEXT_DURATION;
 
+			restartCpt = START_CPT_MAX;
+
 			lives--;
 			if(lives === 0){
 				gameOver();
 			}
+		}
+		if(restartCpt>0){
+			restartCpt--;
 		}
 	}
 
@@ -1382,7 +1386,7 @@ window.onload = function(){
 
 		if(!started){
 			statusCtx.textAlign="center";
-			var txt = startCpt <50 ? "Hold right mouse button" : "Release to launch !";
+			var txt = restartCpt ? "Out..." : startCpt <50 ? "Hold right mouse button" : "Release to launch !";
 			statusCtx.fillText(txt, screenWidth/2,STATUS_HEIGHT/2);
 		}
 
