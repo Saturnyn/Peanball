@@ -1359,7 +1359,7 @@ window.onload = function(){
 		}
 
 		//Draw boost gauge
-		if(started){//} canBoostCpt>0 && ball.elt!=NO_ELEMENT){
+		if(started && !gameIsOver){//} canBoostCpt>0 && ball.elt!=NO_ELEMENT){
 			var height = 20;
 			var width = 102;
 			var x =(screenWidth-width)/2 ;
