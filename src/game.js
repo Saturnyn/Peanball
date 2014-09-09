@@ -187,6 +187,7 @@ window.onload = function(){
 		var r = MONSTER_SPRITE_MARGIN;
 
 		// ICE
+		monsterCtx.save();
 		monsterCtx.translate(4, 4);
 		style(monsterCtx,"#aef","#5af",2);
 		monsterCtx.beginPath();
@@ -269,7 +270,6 @@ window.onload = function(){
 
 		//GLASS
 		monsterCtx.translate(s+8, 0);
-
 		monsterCtx.lineCap = "round";
 		//sphere
 		style(monsterCtx,0,"#fff",2);
@@ -282,6 +282,8 @@ window.onload = function(){
 		//eyes
 		drawCircle(monsterCtx,s2-4,s2+4,4,NO,YES);
 		drawCircle(monsterCtx,s2+4,s2+4,4,NO,YES);
+
+		monsterCtx.restore();
 	}
 
 

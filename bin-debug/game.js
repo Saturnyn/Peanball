@@ -297,6 +297,7 @@ aa.add( 'die', 1,
 		var r = MONSTER_SPRITE_MARGIN;
 
 		// ICE
+		monsterCtx.save();
 		monsterCtx.translate(4, 4);
 		style(monsterCtx,"#aef","#5af",2);
 		monsterCtx.beginPath();
@@ -379,7 +380,6 @@ aa.add( 'die', 1,
 
 		//GLASS
 		monsterCtx.translate(s+8, 0);
-
 		monsterCtx.lineCap = "round";
 		//sphere
 		style(monsterCtx,0,"#fff",2);
@@ -392,6 +392,8 @@ aa.add( 'die', 1,
 		//eyes
 		drawCircle(monsterCtx,s2-4,s2+4,4,NO,YES);
 		drawCircle(monsterCtx,s2+4,s2+4,4,NO,YES);
+
+		monsterCtx.restore();
 	}
 
 
