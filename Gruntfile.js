@@ -7,11 +7,11 @@ module.exports = function(grunt) {
 				separator: ';'
 			},
 			distDebug: {
-				src: ['src/*.js'],
+				src: ['src/jsfxr.js','src/*.js'],
 				dest: 'bin-debug/game.js'
 			},
 			distRelease: {
-				src: ['src/game.js','requestAnimation.js'],
+				src: ['js/requestAnimation.js','js/jsfxr.js','js/game-audio.js','src/game.js'],
 				dest: 'bin-release/game.js'
 			}
 		},
@@ -49,7 +49,7 @@ module.exports = function(grunt) {
 			}
 		},
 		watch: {
-			files: ['src/**/*'],
+			files: ['Gruntfile.js','src/**/*'],
 			tasks: ['jshint', 'concat', 'uglify','copy']
 		}
 	});

@@ -15,6 +15,7 @@ window.onload = function(){
 	var YES = true;
 	var NO = false;
 
+
 	//------------------------------------------------------------------------------------------------------------------
 	// sizes and DOM
 	//------------------------------------------------------------------------------------------------------------------
@@ -412,6 +413,8 @@ window.onload = function(){
 					started = true;
 					ballBoostType = "start";
 					//console.log(boostRatio,startAngle,ball);
+
+					aa.play("boost");
 				}
 			}
 		}
@@ -466,7 +469,7 @@ window.onload = function(){
 
 		}
 
-
+		/*
 		//DEBUG teleport
 		if(mouse.middle){
 			startCpt = 0;
@@ -478,7 +481,7 @@ window.onload = function(){
 			mouse.middle = false;
 			//console.log("mouse teleport",ball);
 		}
-
+		*/
 
 
 		//left click boost
@@ -496,6 +499,8 @@ window.onload = function(){
 			ballBoostType = "click";
 
 			mouse.left = false;
+
+			aa.play("boost");
 		}
 		if(canBoostCpt>0){
 			canBoostCpt--;
@@ -648,11 +653,13 @@ window.onload = function(){
 							//handle collision with monster
 							if(e.kind == MONSTER){
 								if(killMap[ball.elt] == e.elt && !e.dead){
-									//ball kills monster of opposite element
+									//ball eats monster of opposite element
 									e.dead = true;
 									//ball.elt = NO_ELEMENT;
 									canBoostCpt = CAN_BOOST_DURATION;
 									monsterEaten++;
+
+									aa.play("eat");
 								}
 
 								if(e.dead /*e.elt==ball.elt*/){
@@ -672,6 +679,7 @@ window.onload = function(){
 								if(canBoostCpt > CAN_BOOST_DURATION){
 									canBoostCpt = CAN_BOOST_DURATION;
 								}
+								aa.play("bumper");
 							}
 
 							if(e.kind == MONSTER){
@@ -690,6 +698,8 @@ window.onload = function(){
 										ringCpt = STATUS_TEXT_DURATION;
 										ringStatus = -1;
 									}
+
+									aa.play("hurt");
 								}
 							}
 
@@ -820,6 +830,7 @@ window.onload = function(){
 										var boostY = collisionVector.y*speed;
 
 										if(!ballBoostCpt || ballBoostType != PADDLE){
+											aa.play("pad");
 											//initial boost
 											//console.log("=============");
 											ballBoostCpt = boostCpt;
@@ -915,6 +926,8 @@ window.onload = function(){
 			var ry = ring.y-ball.y;
 			var prod = rx*rx + ry*ry;
 			if(prod < ballRadProd){
+				aa.play("ring");
+
 				ring.m = null;
 				//catch ring !
 				//remove by swapping
@@ -1608,7 +1621,7 @@ window.onload = function(){
 
 	function tic(){
 
-		if(stb) stb(); // Stats plugin for debug
+		if(window.stb) stb(); // Stats plugin for debug
 
 		//lives=1;
 		if(gameIsOver){
@@ -1626,7 +1639,7 @@ window.onload = function(){
 			renderStatus();
 		}
 
-		if(ste) ste();
+		if(window.ste) ste();
 
 		requestAnimationFrame(tic);
 	}
