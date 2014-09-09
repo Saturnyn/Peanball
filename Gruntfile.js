@@ -11,7 +11,7 @@ module.exports = function(grunt) {
 				dest: 'bin-debug/game.js'
 			},
 			distRelease: {
-				src: ['js/requestAnimation.js','js/jsfxr.js','js/game-audio.js','src/game.js'],
+				src: ['src/requestAnimation.js','src/jsfxr.js','src/game-audio.js','src/game.js'],
 				dest: 'bin-release/game.js'
 			}
 		},
