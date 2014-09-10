@@ -57,6 +57,9 @@ window.onload = function(){
 	var monsterCanvas = makeCanvas(4*(MONSTER_SPRITE_SIZE+2*MONSTER_SPRITE_MARGIN),MONSTER_SPRITE_SIZE+2*MONSTER_SPRITE_MARGIN);
 	var monsterCtx = getContext(monsterCanvas);
 
+	var ringCanvas = makeCanvas();
+	var ringCtx = getContext(ringCanvas);
+
 	var cameraX;
 	var cameraY;
 	var prevCameraX;
@@ -179,9 +182,10 @@ window.onload = function(){
 		buildSide(identity,mirror,0,3);
 		buildSide(mirror,identity,2,1);
 		buildSide(mirror,mirror,0,1);
+	}
 
-
-		//Also draw monster skins
+	function drawMonsterSkins(){
+		//draw monster skins
 		var s = MONSTER_SPRITE_SIZE;
 		var s2 = s/2;
 		var r = MONSTER_SPRITE_MARGIN;
@@ -286,6 +290,29 @@ window.onload = function(){
 		monsterCtx.restore();
 	}
 
+	function drawRingSkins(){
+		if(!ringCanvas.width){
+			var margin = 4;
+			ringCanvas.width = 2*(RING_RADIUS+margin)*RING_ANIMATION_STEPS;
+			ringCanvas.height = 2*(RING_RADIUS+margin);
+
+			for(var j=0 ; j<RING_ANIMATION_STEPS ; j++){
+				//pulse color
+				var color = 0xaa + (j/RING_ANIMATION_STEPS)*0x44 >> 0;
+				color = color.toString(16);
+				style(ringCtx,null,"#"+color+color+"00",3);
+
+				var x = (2*j+1) * (margin+RING_RADIUS);
+				var y = (margin+RING_RADIUS);
+				ringCtx.beginPath();
+				ringCtx.arc(x,y,RING_RADIUS,0,2*PI);
+				ringCtx.stroke();
+			}
+			//document.body.appendChild(ringCanvas);
+			//ringCanvas.style.cssText = "position: absolute; top: 50px; left: 50px;";
+		}
+	}
+
 
 
 	//------------------------------------------------------------------------------------------------------------------
@@ -320,6 +347,9 @@ window.onload = function(){
 	var MONSTER_RADIUS = 38;
 	var BALL_RADIUS = 16;
 	var RING_RADIUS = 8;
+
+	var RING_ANIMATION_STEPS = 10;
+	var RING_CYCLE_LENGTH = 30;
 
 	//ball,walls,slopes,padles (everything that isn't added/removed)
 	var entities;
@@ -393,6 +423,8 @@ window.onload = function(){
 		entities = [];
 		monsters = [];
 		buildBackground();
+		drawMonsterSkins();
+		drawRingSkins();
 		buildObjects();
 	}
 
@@ -500,6 +532,8 @@ window.onload = function(){
 			ballBoostY = ball.v.y;
 			ballBoostType = "click";
 
+			canBoostCpt -= 10;
+
 			mouse.left = false;
 
 			aa.play("boost");
@@ -563,10 +597,10 @@ window.onload = function(){
 		}
 	}
 
-	function updateBall(){
-		var i,len, e,eLen;
+	function updateBallGravity(){
 		//Update ball physics
 		if(started){
+			var dx, dy;
 			//Compute gravity
 			var gx = 0;
 			var gy = 0;
@@ -632,8 +666,12 @@ window.onload = function(){
 
 			ball.x = Math.round(ball.x);
 			ball.y = Math.round(ball.y);
+		}
+	}
 
-
+	function checkBallCollisions(){
+		var i,len, e,eLen;
+		if(started){
 			//ball collisions (CAUTION: the following code is more about cuisine than physics)
 			ball.collide = false;
 			eLen = entities.length;
@@ -644,274 +682,290 @@ window.onload = function(){
 				}else{
 					e = monsters[i-eLen];
 				}
+				var isRisingPad = false;
 				if(e != ball){
 					e.collide = false;
 					var l;
 					var collisionVector = tempVector;
 					if(e.shape==CIRCLE){
-
 						if(collideCircle(ball,e)){
-
-							//handle collision with monster
-							if(e.kind == MONSTER){
-								if(killMap[ball.elt] == e.elt && !e.dead){
-									//ball eats monster of opposite element
-									e.dead = true;
-									//ball.elt = NO_ELEMENT;
-									canBoostCpt = CAN_BOOST_DURATION;
-									monsterEaten++;
-
-									aa.play("eat");
-								}
-
-								if(e.dead /*e.elt==ball.elt*/){
-									//no collision with dead element
-									continue;
-								}
+							handleCircleCollision(e, collisionVector);
+							if(e.collide){
+								updateBallAfterCollision(e,collisionVector);
 							}
-
-							e.collide = true;
-							//compute vector going from entity center to ball center
-							collisionVector.x = ball.x- e.x;
-							collisionVector.y = ball.y- e.y;
-							l = pyth(collisionVector.x,collisionVector.y);
-
-							if(e.kind == BUMPER && ball.elt != NO_ELEMENT){
-								canBoostCpt += 50;
-								if(canBoostCpt > CAN_BOOST_DURATION){
-									canBoostCpt = CAN_BOOST_DURATION;
-								}
-								aa.play("bumper");
-							}
-
-							if(e.kind == MONSTER){
-								if(e.elt != ball.elt){
-									hurtCpt = STATUS_TEXT_DURATION;
-									ball.elt = NO_ELEMENT;
-
-									//else it loses a ring
-									if(rings.n<rings.length){
-										rings.n++;
-										var ring = rings[rings.n-1];
-										ring.m = e;
-										ring.dx = collisionVector.x * (MONSTER_RADIUS-RING_RADIUS)/l;
-										ring.dy = collisionVector.y * (MONSTER_RADIUS-RING_RADIUS)/l;
-
-										ringCpt = STATUS_TEXT_DURATION;
-										ringStatus = -1;
-									}
-
-									aa.play("hurt");
-								}
-							}
-
-
-							//compute how much do we need to move ball to put it out of collision
-							collisionVector.l = e.r+ball.r-l;
-							//and normalize vector
-							collisionVector.x = collisionVector.x/l;
-							collisionVector.y = collisionVector.y/l;
 						}
 					}else if(e.shape==LINE){
-
-						var risingPad = e.kind == PADDLE && e.movingUp;
-						if(!risingPad && collideLine(ball,e,collisionVector)){
-							//collision with a slope or an inactive paddle
-							e.collide = true;
-
-							//We need to check if ball passed through the line
-							// B is the ball center, E is the projection of B on the line entity
-							//collisonVector is EC
-							//pb ball may have pierced through line and its center might be on the other side
-							//fix: check if the angle between collisonVector and speed is obtuse (hasn't pierced) or acute (has pierced)
-							computeLineEq(tempLineEq, e.x, e.y, e.x2, e.y2);
-							//NOTE: this works even on reversed/mirror tables because  the slop doesn't change
-							var pierced = checkAboveLineEq(tempLineEq,ball.x,ball.y) !== checkAboveLineEq(tempLineEq,ball.prevX,ball.prevY);
-							if(pierced<=0){
-								//hasn't pierce
-								l = ball.r-collisionVector.l;
-								//console.log("hasn't pierced");
-							}else{
-								//pierced
-								l = ball.r+collisionVector.l;
-								collisionVector.x *= -1;
-								collisionVector.y *= -1;
-								//console.log("pierced !!!");
-							}
-
-
-							//normalize vector and save its length
-							collisionVector.x /= collisionVector.l;
-							collisionVector.y /= collisionVector.l;
-							collisionVector.l = l;
-						}
-						if(risingPad){
-							// Check collisions with moving pad differently
-							// I think I overcomplicated things and should have checked collision with pad before/pad after and ball before/ball after instead
-							// it is working correctly now, so no need to change it
-
-							//Do a normal collsion check with current position
-							var collide = collideLine(ball,e,collisionVector);
-							var reverse = (e.elt==1 || e.elt==3);
-							var aboveBefore,aboveAfter;
-							if(!collide){
-								//No collision, but since the paddle moved, maybe the ball went through
-								//Check if we are between the two paddle position
-								computeLineEq(tempLineEq, e.x, e.y, e.prevX2, e.prevY2);
-								aboveBefore = checkAboveLineEq(tempLineEq,ball.prevX,ball.prevY, reverse);
-
-								computeLineEq(tempLineEq, e.x, e.y, e.x2, e.y2);
-								aboveAfter = checkAboveLineEq(tempLineEq,ball.x,ball.y, reverse);
-							}
-
-							if(collide || aboveBefore!==aboveAfter){
-								//ball center is between the two lines
-								var dx = ball.x-e.x;
-								var dy = ball.y- e.y;
-								var dotProd = dx*e._ux + dy* e._uy;
-								if(collide || dotProd>0){
-									//ball center is on the good side of the pad pivot
-									if(collide || dx*dx+dy*dy < e.l* e.l ){
-										//ball center is inside pad circle
-										e.collide = true;
-
-										//project ball center on paddle
-										//DotProd = cos(angle)*|d|*|e.l|
-										var d = pyth(dx,dy);
-										//distance from pad pivot to projected center
-										var dproj = dotProd/e.l;
-										//collisionVector = projected point
-										collisionVector.x = e.x + dproj*e._ux/e.l;
-										collisionVector.y = e.y + dproj*e._uy/e.l;
-										//Actual collision vector
-										collisionVector.x = ball.x - collisionVector.x;
-										collisionVector.y = ball.y - collisionVector.y;
-										collisionVector.l = pyth(collisionVector.x,collisionVector.y);
-										//normalize
-										collisionVector.x /= collisionVector.l;
-										collisionVector.y /= collisionVector.l;
-
-										//pb, we don't know which direction it should go
-										//Compute normale
-										var nx = e._uy/e.l;
-										var ny = -e._ux/e.l;
-										// multiply by -1 when it seems to be needed...
-										if(e.mirror && (e.elt===0 || e.elt==3) || !e.mirror && (e.elt==1 || e.elt==2)){
-											nx*=-1;
-											ny*=-1;
-										}
-										var nDotProd = nx*collisionVector.x + ny*collisionVector.y;
-										if(nDotProd<0){
-											//reverse collision vector
-											collisionVector.x *= -1;
-											collisionVector.y *= -1;
-										}
-
-										//collision vector brings us to the circle center, but we want the edge
-										collisionVector.l = collisionVector.l + ball.r;
-										//console.log("went through moving paddle",collisionVector.x,collisionVector.y,collisionVector.l);
-
-										// We now have a collisionVector and need to compute how ball velocity should be affected
-
-										//first, move ball out of the paddle
-										//(results in a "sticky" paddle effect which is a little annoying but better than the ball passing through the paddle)
-										ball.x += collisionVector.x * collisionVector.l;
-										ball.y += collisionVector.y * collisionVector.l;
-										ball.collide = true;
-
-										//apply a speed boost proportional to the distance between the pad pivot and ball contact point
-										// 0 at the pivot, 1 at the edge
-										var boostRatio = dproj/e.l;
-										// make it less linear to make the boost more important on the edge
-										boostRatio = 0.1+0.9*(0.3*boostRatio+0.7*boostRatio*boostRatio); //interpolate somewhere between y=x and y=x^2
-
-										//Compute boost
-										var boostCpt = MIN_BOOST_CPT + (boostRatio*BOOST_CPT_BONUS) >> 0;
-										var speed = MIN_BOOST_SPEED + BOOST_SPEED_BONUS*boostRatio; //reach 60% of max speed
-										var boostX = collisionVector.x*speed;
-										var boostY = collisionVector.y*speed;
-
-										if(!ballBoostCpt || ballBoostType != PADDLE){
-											aa.play("pad");
-											//initial boost
-											//console.log("=============");
-											ballBoostCpt = boostCpt;
-											ballBoostX = boostX;
-											ballBoostY = boostY;
-										}else{
-											//add a part of previous boost (give big priority to initial impact)
-											ballBoostCpt = boostCpt;
-											ballBoostX = 0.2*boostX + ballBoostX;
-											ballBoostY = 0.2*boostY + ballBoostY;
-										}
-										ballBoostType = PADDLE;
-										canBoostCpt = CAN_BOOST_DURATION;
-										//console.log("boostRatio",boostRatio,ballBoostCpt,"=>",ballBoostX,ballBoostY);
-
-										//randomize a little to avoid trajectories too often the same
-										ballBoostX *= (0.8+rand()*0.4);
-										ballBoostY *= (0.8+rand()*0.4);
-
-										ball.elt = e.elt;
-										continue;
-									}
+						isRisingPad = e.kind == PADDLE && e.movingUp;
+						if(!isRisingPad){
+							if(collideLine(ball,e,collisionVector)){
+								handleLineCollision(e,collisionVector);
+								if(e.collide){
+									updateBallAfterCollision(e,collisionVector);
 								}
 							}
+						}else{
+							checkPadCollision(e,collisionVector);
 						}
-					}
-					if(e.collide){
-						ballBoostCpt = 0;
-						ball.collide = true;
-						e.colCpt = 20; //used to change color on collided bumpers
-
-						//collisonVector is the the normalized vector indicating how much we need to move the ball in order to remove collision
-						// => move out of collision
-						ball.x += collisionVector.x * collisionVector.l;
-						ball.y += collisionVector.y * collisionVector.l;
-
-						//now we want to compute how velocity is affected
-						//normalize ball velocity vector
-						var vl = pyth(ball.v.x,ball.v.y);
-						var vx = ball.v.x/vl;
-						var vy = ball.v.y/vl;
-
-						//compute the normal vector
-						var normaleX = -collisionVector.y;
-						var normaleY = collisionVector.x;
-						var normaleDotProd = normaleX*vx + normaleY*vy;
-						if(normaleDotProd<0){
-							normaleX = -normaleX;
-							normaleY = -normaleY;
-						}
-
-						//compute angle between ball velocity and tempVector (cross product)
-						//the cos is the part of the speed that goes towards the collision point, it can be absorbed or bounced
-						var cos = vx*collisionVector.x + vy*collisionVector.y;
-						if(cos<0) cos = -cos;
-						//the sin part is parallel to the contact surface
-						var sin = Math.sin(Math.acos(cos));
-						if(sin<0) sin=-sin;
-
-						var bounciness =  0.2;
-
-
-						if(e.kind==BUMPER){
-							bounciness = 1.1;
-						}else if(e.kind==MONSTER){
-							bounciness = 1.1;
-						}
-						collisionVector.x *= cos * bounciness * vl;
-						collisionVector.y *= cos * bounciness * vl;
-						normaleX *= sin * vl;
-						normaleY *= sin * vl;
-						ball.v.x = collisionVector.x + normaleX;
-						ball.v.y = collisionVector.y + normaleY;
 					}
 				}
 			}
 			ball.prevX = ball.x;
 			ball.prevY = ball.y;
 		}
+	}
+
+	function handleCircleCollision(e, collisionVector){
+		//handle collision with monster
+		if(e.kind == MONSTER){
+			if(killMap[ball.elt] == e.elt && !e.dead){
+				//ball eats monster of opposite element
+				e.dead = true;
+				//ball.elt = NO_ELEMENT;
+				canBoostCpt = CAN_BOOST_DURATION;
+				monsterEaten++;
+
+				aa.play("eat");
+			}
+			if(e.dead){
+				return;
+			}
+		}
+
+		e.collide = true;
+		//compute vector going from entity center to ball center
+		collisionVector.x = ball.x- e.x;
+		collisionVector.y = ball.y- e.y;
+		var l = pyth(collisionVector.x,collisionVector.y);
+
+		if(e.kind == BUMPER && ball.elt != NO_ELEMENT){
+			canBoostCpt += 50;
+			if(canBoostCpt > CAN_BOOST_DURATION){
+				canBoostCpt = CAN_BOOST_DURATION;
+			}
+			aa.play("bumper");
+		}
+
+		if(e.kind == MONSTER){
+			if(e.elt != ball.elt){
+				hurtCpt = STATUS_TEXT_DURATION;
+				ball.elt = NO_ELEMENT;
+
+				//else it loses a ring
+				if(rings.n<rings.length){
+					rings.n++;
+					var ring = rings[rings.n-1];
+					ring.m = e;
+					ring.dx = collisionVector.x * (MONSTER_RADIUS-RING_RADIUS)/l;
+					ring.dy = collisionVector.y * (MONSTER_RADIUS-RING_RADIUS)/l;
+
+					ringCpt = STATUS_TEXT_DURATION;
+					ringStatus = -1;
+				}
+
+				aa.play("hurt");
+			}
+		}
+
+
+		//compute how much do we need to move ball to put it out of collision
+		collisionVector.l = e.r+ball.r-l;
+		//and normalize vector
+		collisionVector.x = collisionVector.x/l;
+		collisionVector.y = collisionVector.y/l;
+	}
+
+	function handleLineCollision(e, collisionVector){
+		var l;
+		//collision with a slope or an inactive paddle
+		e.collide = true;
+
+		//We need to check if ball passed through the line
+		// B is the ball center, E is the projection of B on the line entity
+		//collisonVector is EC
+		//pb ball may have pierced through line and its center might be on the other side
+		//fix: check if the angle between collisonVector and speed is obtuse (hasn't pierced) or acute (has pierced)
+		computeLineEq(tempLineEq, e.x, e.y, e.x2, e.y2);
+		//NOTE: this works even on reversed/mirror tables because  the slop doesn't change
+		var pierced = checkAboveLineEq(tempLineEq,ball.x,ball.y) !== checkAboveLineEq(tempLineEq,ball.prevX,ball.prevY);
+		if(pierced<=0){
+			//hasn't pierce
+			l = ball.r-collisionVector.l;
+			//console.log("hasn't pierced");
+		}else{
+			//pierced
+			l = ball.r+collisionVector.l;
+			collisionVector.x *= -1;
+			collisionVector.y *= -1;
+			//console.log("pierced !!!");
+		}
+
+
+		//normalize vector and save its length
+		collisionVector.x /= collisionVector.l;
+		collisionVector.y /= collisionVector.l;
+		collisionVector.l = l;
+	}
+
+	function checkPadCollision(e, collisionVector){
+		// Check collisions with moving pad differently
+		// I think I overcomplicated things and should have checked collision with pad before/pad after and ball before/ball after instead
+		// it is working correctly now, so no need to change it
+
+		//Do a normal collsion check with current position
+		var collide = collideLine(ball,e,collisionVector);
+		var reverse = (e.elt==1 || e.elt==3);
+		var aboveBefore,aboveAfter;
+		if(!collide){
+			//No collision, but since the paddle moved, maybe the ball went through
+			//Check if we are between the two paddle position
+			computeLineEq(tempLineEq, e.x, e.y, e.prevX2, e.prevY2);
+			aboveBefore = checkAboveLineEq(tempLineEq,ball.prevX,ball.prevY, reverse);
+
+			computeLineEq(tempLineEq, e.x, e.y, e.x2, e.y2);
+			aboveAfter = checkAboveLineEq(tempLineEq,ball.x,ball.y, reverse);
+		}
+
+		if(collide || aboveBefore!==aboveAfter){
+			//ball center is between the two lines
+			var dx = ball.x-e.x;
+			var dy = ball.y- e.y;
+			var dotProd = dx*e._ux + dy* e._uy;
+			if(collide || dotProd>0){
+				//ball center is on the good side of the pad pivot
+				if(collide || dx*dx+dy*dy < e.l* e.l ){
+					//ball center is inside pad circle
+					e.collide = true;
+
+					//project ball center on paddle
+					//DotProd = cos(angle)*|d|*|e.l|
+					var d = pyth(dx,dy);
+					//distance from pad pivot to projected center
+					var dproj = dotProd/e.l;
+					//collisionVector = projected point
+					collisionVector.x = e.x + dproj*e._ux/e.l;
+					collisionVector.y = e.y + dproj*e._uy/e.l;
+					//Actual collision vector
+					collisionVector.x = ball.x - collisionVector.x;
+					collisionVector.y = ball.y - collisionVector.y;
+					collisionVector.l = pyth(collisionVector.x,collisionVector.y);
+					//normalize
+					collisionVector.x /= collisionVector.l;
+					collisionVector.y /= collisionVector.l;
+
+					//pb, we don't know which direction it should go
+					//Compute normale
+					var nx = e._uy/e.l;
+					var ny = -e._ux/e.l;
+					// multiply by -1 when it seems to be needed...
+					if(e.mirror && (e.elt===0 || e.elt==3) || !e.mirror && (e.elt==1 || e.elt==2)){
+						nx*=-1;
+						ny*=-1;
+					}
+					var nDotProd = nx*collisionVector.x + ny*collisionVector.y;
+					if(nDotProd<0){
+						//reverse collision vector
+						collisionVector.x *= -1;
+						collisionVector.y *= -1;
+					}
+
+					//collision vector brings us to the circle center, but we want the edge
+					collisionVector.l = collisionVector.l + ball.r;
+					//console.log("went through moving paddle",collisionVector.x,collisionVector.y,collisionVector.l);
+
+					// We now have a collisionVector and need to compute how ball velocity should be affected
+
+					//first, move ball out of the paddle
+					//(results in a "sticky" paddle effect which is a little annoying but better than the ball passing through the paddle)
+					ball.x += collisionVector.x * collisionVector.l;
+					ball.y += collisionVector.y * collisionVector.l;
+					ball.collide = true;
+
+					//apply a speed boost proportional to the distance between the pad pivot and ball contact point
+					// 0 at the pivot, 1 at the edge
+					var boostRatio = dproj/e.l;
+					// make it less linear to make the boost more important on the edge
+					boostRatio = 0.1+0.9*(0.3*boostRatio+0.7*boostRatio*boostRatio); //interpolate somewhere between y=x and y=x^2
+
+					//Compute boost
+					var boostCpt = MIN_BOOST_CPT + (boostRatio*BOOST_CPT_BONUS) >> 0;
+					var speed = MIN_BOOST_SPEED + BOOST_SPEED_BONUS*boostRatio; //reach 60% of max speed
+					var boostX = collisionVector.x*speed;
+					var boostY = collisionVector.y*speed;
+
+					if(!ballBoostCpt || ballBoostType != PADDLE){
+						aa.play("pad");
+						//initial boost
+						//console.log("=============");
+						ballBoostCpt = boostCpt;
+						ballBoostX = boostX;
+						ballBoostY = boostY;
+					}else{
+						//add a part of previous boost (give big priority to initial impact)
+						ballBoostCpt = boostCpt;
+						ballBoostX = 0.2*boostX + ballBoostX;
+						ballBoostY = 0.2*boostY + ballBoostY;
+					}
+					ballBoostType = PADDLE;
+					canBoostCpt = CAN_BOOST_DURATION;
+					//console.log("boostRatio",boostRatio,ballBoostCpt,"=>",ballBoostX,ballBoostY);
+
+					//randomize a little to avoid trajectories too often the same
+					ballBoostX *= (0.8+rand()*0.4);
+					ballBoostY *= (0.8+rand()*0.4);
+
+					ball.elt = e.elt;
+				}
+			}
+		}
+	}
+
+	function updateBallAfterCollision(e, collisionVector){
+		ballBoostCpt = 0;
+		ball.collide = true;
+		e.colCpt = 20; //used to change color on collided bumpers
+
+		//collisonVector is the the normalized vector indicating how much we need to move the ball in order to remove collision
+		// => move out of collision
+		ball.x += collisionVector.x * collisionVector.l;
+		ball.y += collisionVector.y * collisionVector.l;
+
+		//now we want to compute how velocity is affected
+		//normalize ball velocity vector
+		var vl = pyth(ball.v.x,ball.v.y);
+		var vx = ball.v.x/vl;
+		var vy = ball.v.y/vl;
+
+		//compute the normal vector
+		var normaleX = -collisionVector.y;
+		var normaleY = collisionVector.x;
+		var normaleDotProd = normaleX*vx + normaleY*vy;
+		if(normaleDotProd<0){
+			normaleX = -normaleX;
+			normaleY = -normaleY;
+		}
+
+		//compute angle between ball velocity and tempVector (cross product)
+		//the cos is the part of the speed that goes towards the collision point, it can be absorbed or bounced
+		var cos = vx*collisionVector.x + vy*collisionVector.y;
+		if(cos<0) cos = -cos;
+		//the sin part is parallel to the contact surface
+		var sin = Math.sin(Math.acos(cos));
+		if(sin<0) sin=-sin;
+
+		var bounciness =  0.2;
+
+
+		if(e.kind==BUMPER){
+			bounciness = 1.1;
+		}else if(e.kind==MONSTER){
+			bounciness = 1.1;
+		}
+		collisionVector.x *= cos * bounciness * vl;
+		collisionVector.y *= cos * bounciness * vl;
+		normaleX *= sin * vl;
+		normaleY *= sin * vl;
+		ball.v.x = collisionVector.x + normaleX;
+		ball.v.y = collisionVector.y + normaleY;
 	}
 
 	function updateRings(){
@@ -978,7 +1032,8 @@ window.onload = function(){
 	function update(){
 		updateBumpers();
 		updateMonsters();
-		updateBall();
+		updateBallGravity();
+		checkBallCollisions();
 		updateRings();
 	}
 
@@ -1089,33 +1144,62 @@ window.onload = function(){
 			clearCanvas(fxCtx);
 		}
 
-		//draw rings
-		rings.cpt++;
-		//pulse color
-		var color = 0xaa + Math.cos(rings.cpt/20)*0x22 >> 0;
-		color = color.toString(16);
-		style(entityCtx,null,"#"+color+color+"00",2);
+		renderRings();
+		renderMonsters();
+		renderEntities();
+		renderBall();
 
-		var twoPi = 2*PI;
+		/*
+		 //if(ballBoostCpt>0){
+		 style(entityCtx,0,"red",2);
+		 drawLine(entityCtx, ball.x-cameraX, ball.y-cameraY , ball.x+ballBoostX*300-cameraX,ball.y+ballBoostY*300-cameraY);
+		 //}
+		 if(mouse.left){
+		 style(bgCtx,"red");
+		 drawCircle(bgCtx,mouse.x,mouse.y,5,true,true);
+		 }
+		 */
+
+		//compose final rendering
+		drawImage(renderCtx, bgCanvas, -cameraX, -cameraY);
+		if(drawFx) drawImage(renderCtx, fxCanvas, 0, 0);
+		drawImage(renderCtx, entityCanvas, 0, 0);
+	}
+
+	function renderRings(){
 		var minx = cameraX-RING_RADIUS;
 		var maxx = cameraX+screenWidth+RING_RADIUS;
 		var miny = cameraY-RING_RADIUS;
 		var maxy = cameraY+screenWidth+RING_RADIUS;
 		var rx,ry;
-		for(i=0 ; i<rings.n ; i++){
+		var skinSize = ringCanvas.width/RING_ANIMATION_STEPS;
+		var halfSkinSize = skinSize/2;
+		for(var i= 0, len=rings.n; i<len ; i++){
 			var ring = rings[i];
+			ring.cpt += ring.cptDir;
+			if(ring.cpt>=RING_CYCLE_LENGTH){
+				ring.cpt = RING_CYCLE_LENGTH;
+				ring.cptDir = -1;
+			}else if(ring.cpt<=0){
+				ring.cpt = 0;
+				ring.cptDir = 1;
+			}
 			rx = ring.x;
 			ry = ring.y;
 			if( rx>minx && rx<maxx && ry>miny && ry<maxy){
-				entityCtx.beginPath();
-				entityCtx.arc(rx-cameraX,ry-cameraY,RING_RADIUS,0,twoPi);
-				entityCtx.stroke();
+				var skinIndex = (ring.cpt/RING_CYCLE_LENGTH)*(RING_ANIMATION_STEPS-1) >> 0;
+				entityCtx.drawImage(ringCanvas,
+					skinIndex*skinSize , 0, skinSize, skinSize,
+					rx-halfSkinSize-cameraX ,ry-halfSkinSize-cameraY, skinSize,skinSize);
+				//console.log(skinIndex);
 			}
 		}
+	}
 
+	function renderMonsters(){
 		//draw monsters
 		var size = (MONSTER_SPRITE_SIZE+MONSTER_SPRITE_MARGIN*2);
-		for(i=0, len=monsters.length ; i<len ; i++){
+		for(var i=0, len=monsters.length ; i<len ; i++){
 			var m = monsters[i];
 			var a = 1;
 
@@ -1171,8 +1255,8 @@ window.onload = function(){
 			entityCtx.globalAlpha = a * (same ? 0.4 : vulnerable ? 0.7 : 1);
 
 
-			dx = 0;
-			dy = 0;
+			var dx = 0;
+			var dy = 0;
 			if(vulnerable){
 				//Shake in fear !
 				dx = 3*(Math.random()-0.5);
@@ -1193,9 +1277,10 @@ window.onload = function(){
 			//drawCircle(entityCtx, m.x-cameraX, m.y-cameraY, m.r,null,ELT_COLORS[m.elt][0]);
 		}
 		entityCtx.globalAlpha = 1;
+	}
 
-		var dx,dy;
-		for(i=0 , len=entities.length ; i<len ; i++){
+	function renderEntities(){
+		for(var i=0 , len=entities.length ; i<len ; i++){
 			var e = entities[i];
 			var x = e.x-cameraX;
 			var y = e.y-cameraY;
@@ -1223,7 +1308,9 @@ window.onload = function(){
 				}
 			}
 		}
+	}
 
+	function renderBall(){
 		//Draw ball
 		if(!restartCpt){
 			//mouth orientation
@@ -1250,8 +1337,8 @@ window.onload = function(){
 			dAngle *= 0.3*PI/10;
 
 			//Shake when starting
-			dx = 0;
-			dy = 0;
+			var dx = 0;
+			var dy = 0;
 			if(startCpt>0 && !started){
 				var shake = clamp(startCpt/START_CPT_MAX,0,1)*4;
 				dx = shake*rand();
@@ -1292,23 +1379,6 @@ window.onload = function(){
 				drawCamembert(entityCtx, ball.x-cameraX +dx, ball.y-cameraY +dy, ball.r, angle, dAngle, YES, YES);
 			}
 		}
-
-
-		/*
-		//if(ballBoostCpt>0){
-			style(entityCtx,0,"red",2);
-			drawLine(entityCtx, ball.x-cameraX, ball.y-cameraY , ball.x+ballBoostX*300-cameraX,ball.y+ballBoostY*300-cameraY);
-		//}
-		if(mouse.left){
-			style(bgCtx,"red");
-			drawCircle(bgCtx,mouse.x,mouse.y,5,true,true);
-		}
-		*/
-
-		//compose final rendering
-		drawImage(renderCtx, bgCanvas, -cameraX, -cameraY);
-		if(drawFx) drawImage(renderCtx, fxCanvas, 0, 0);
-		drawImage(renderCtx, entityCanvas, 0, 0);
 	}
 
 	function checkGame(){
@@ -1728,6 +1798,8 @@ window.onload = function(){
 				ringAngle = 2*PI*(j/nBranches) + i*0.1 + startAngle;
 				ring = makeEntity(CIRCLE,RING);
 				ring.r = RING_RADIUS;
+				ring.cpt = rand()*RING_CYCLE_LENGTH >> 0;
+				ring.cptDir = rand() > 0.5 ? 1:-1;
 				rings[rings.n] = ring;
 				rings.n++;
 
