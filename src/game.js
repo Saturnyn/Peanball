@@ -10,7 +10,6 @@ window.onload = function(){
 	var sqrt = Math.sqrt;
 	var rand = Math.random;
 
-	var toChar = String.fromCharCode;
 
 	var YES = true;
 	var NO = false;
@@ -134,10 +133,6 @@ window.onload = function(){
 		drawCircle(bgCtx,HALF_SIZE,HALF_SIZE,8, YES,YES);
 		//drawCircle(bgCtx,halfSize,halfSize,centerRadius,null,TILE_LINE_COLOR_3,1);
 
-		var upChar = 0x21e7;
-		var downChar = 0x21e9;
-		var leftChar = 0x21e6;
-		var rightChar = 0x21e8;
 
 		function buildSide(x,y,t1,t2){
 			//draw wall
@@ -160,15 +155,15 @@ window.onload = function(){
 			addEntity( makeLine( x(TABLE_HEIGHT+CORNER_RADIUS), y(0), x(TABLE_HEIGHT+CORNER_RADIUS), y(TABLE_HEIGHT), BACKGROUND ) );
 
 			//draw arrows
-			var char_ = x==identity ? leftChar : rightChar;
+			var char_ = x==identity ? "⇐" : "⇒";
 			bgCtx.font = "64px Georgia, serif";
 			bgCtx.textAlign="center";
 			bgCtx.textBaseline="middle";
 			style(bgCtx,ELEMENT_COLORS[t1][1]);
-			bgCtx.fillText(toChar(char_),x(TABLE_HEIGHT+CORNER_RADIUS+130)-2,y(50)-3);
+			bgCtx.fillText(char_,x(TABLE_HEIGHT+CORNER_RADIUS+130)-2,y(50)-3);
 			style(bgCtx,ELEMENT_COLORS[t2][1]);
-			char_ = y==identity ? upChar : downChar;
-			bgCtx.fillText(toChar(char_),x(50)-2,y(TABLE_HEIGHT+CORNER_RADIUS+130)-3);
+			char_ = y==identity ? "⇑" : "⇓";
+			bgCtx.fillText(char_,x(50)-2,y(TABLE_HEIGHT+CORNER_RADIUS+130)-3);
 
 			//draw element text
 			bgCtx.font = "16px Georgia, serif";
@@ -1531,10 +1526,10 @@ window.onload = function(){
 			ringCpt--;
 			if(ringStatus>0){
 				style(statusCtx,"#0f0");
-				ringText = toChar(0x2191)+" "+ringText;
+				ringText = "↑ "+ringText;
 			}else{
 				style(statusCtx,"#f00");
-				ringText = toChar(0x2193)+" "+ringText;
+				ringText = "↓ "+ringText;
 			}
 		}
 		statusCtx.textAlign="right";
