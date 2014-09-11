@@ -180,8 +180,8 @@ aa.add( 'die', 1,
 	var prevCameraY;
 
 	window.onresize = function(){
-		screenWidth = clamp(win.innerWidth,TABLE_WIDTH,TOTAL_SIZE);
-		screenHeight = clamp(win.innerHeight-STATUS_HEIGHT,TABLE_WIDTH,TOTAL_SIZE);
+		screenWidth = clamp(win.innerWidth,TABLE_WIDTH/2,TOTAL_SIZE);
+		screenHeight = clamp(win.innerHeight-STATUS_HEIGHT,TABLE_WIDTH/2,TOTAL_SIZE);
 		screenMinSize = Math.min(screenWidth,screenHeight);
 		statusCanvas.width = entityCanvas.width = fxCanvas.width = renderCanvas.width = screenWidth = screenWidth-screenWidth%2;
 		entityCanvas.height = fxCanvas.height = renderCanvas.height = screenHeight = screenHeight-screenHeight%2;
@@ -2311,7 +2311,7 @@ aa.add( 'die', 1,
 		renderCtx.save();
 		fillRect(renderCtx,0,0,TOTAL_SIZE,TOTAL_SIZE, tileCanvas);
 
-		renderCtx.translate(screenWidth/2-w/2,20);
+		renderCtx.translate(screenWidth/2-w/2,0);
 		fillRect(renderCtx,0,0,w,h, "rgba(0,0,0,0.5)");
 
 		var lightGreen = "#b7f1d5";
@@ -2371,6 +2371,9 @@ aa.add( 'die', 1,
 		renderCtx.textAlign="center";
 		style(renderCtx,lightGreen);
 		renderCtx.fillText("Press SPACE to start the game",w/2,h-130);
+		renderCtx.font = "16px  Georgia, serif";
+		style(renderCtx,"#aaa");
+		renderCtx.fillText("( play in full screen if you can )",w/2,h-90);
 		//renderCtx.strokeText("Press SPACE to start the game",w/2,h-130);
 
 		renderCtx.restore();
