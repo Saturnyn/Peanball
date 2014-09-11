@@ -1641,7 +1641,6 @@ aa.add( 'die', 1,
 				style(statusCtx,"#f00");
 				ringText = "↓ "+ringText;
 			}
-			
 		}
 		statusCtx.textAlign="right";
 		statusCtx.fillText( ringText, screenWidth-38,STATUS_HEIGHT/2);
