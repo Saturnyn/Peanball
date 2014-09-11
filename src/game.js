@@ -20,7 +20,7 @@ window.onload = function(){
 	// sizes and DOM
 	//------------------------------------------------------------------------------------------------------------------
 
-	var TABLE_WIDTH = 700;
+	var TABLE_WIDTH = 680;
 	var TABLE_HEIGHT = 220;
 	var CORNER_RADIUS = 200;
 	var BUMPER_ZONE_RADIUS = CORNER_RADIUS + TABLE_WIDTH/2;
@@ -44,6 +44,7 @@ window.onload = function(){
 
 	var renderCanvas = makeCanvas();
 	var renderCtx = getContext(renderCanvas);
+	renderCanvas.style.cursor = "crosshair";
 
 	var fxCanvas = makeCanvas();
 	var fxCtx = getContext(fxCanvas);
@@ -59,6 +60,9 @@ window.onload = function(){
 
 	var ringCanvas = makeCanvas();
 	var ringCtx = getContext(ringCanvas);
+
+	var tileCanvas = makeCanvas(TILE_SIZE, TILE_SIZE);
+	var tileCtx = getContext(tileCanvas);
 
 	var cameraX;
 	var cameraY;
@@ -103,18 +107,15 @@ window.onload = function(){
 		//AIR
 		["rgba(255,255,255,0.5","#fff" , "#fff"],
 		//NO ELEMENT
-		["#ff6","#555"]
+		[ /*"#ff6"*/"#12d373","#333"]
 	];
 
 	function buildBackground(){
-		var tempCanvas = makeCanvas(TILE_SIZE, TILE_SIZE);
-		var tempCtx = getContext(tempCanvas);
-
 		//checkboard pattern
-		fillRect(tempCtx,0,0,TILE_SIZE,TILE_SIZE,TILE_LINE_COLOR); //"#fff");
-		fillRect(tempCtx,0,0,TILE_SIZE-1,TILE_SIZE-1,TILE_LINE_COLOR_2); //"#eee");
-		fillRect(tempCtx,0,0,TILE_SIZE-2,TILE_SIZE-2,TILE_FILL_COLOR); //"#f8f8f8");
-		fillRect(bgCtx,0,0,TOTAL_SIZE,TOTAL_SIZE, tempCanvas);
+		fillRect(tileCtx,0,0,TILE_SIZE,TILE_SIZE,TILE_LINE_COLOR); //"#fff");
+		fillRect(tileCtx,0,0,TILE_SIZE-1,TILE_SIZE-1,TILE_LINE_COLOR_2); //"#eee");
+		fillRect(tileCtx,0,0,TILE_SIZE-2,TILE_SIZE-2,TILE_FILL_COLOR); //"#f8f8f8");
+		fillRect(bgCtx,0,0,TOTAL_SIZE,TOTAL_SIZE, tileCanvas);
 
 		//element overlay
 		bgCtx.globalAlpha = 0.1;
@@ -160,7 +161,7 @@ window.onload = function(){
 
 			//draw arrows
 			var char_ = x==identity ? leftChar : rightChar;
-			bgCtx.font = "64px sans-serif";
+			bgCtx.font = "64px Georgia, serif";
 			bgCtx.textAlign="center";
 			bgCtx.textBaseline="middle";
 			style(bgCtx,ELEMENT_COLORS[t1][1]);
@@ -170,7 +171,7 @@ window.onload = function(){
 			bgCtx.fillText(toChar(char_),x(50)-2,y(TABLE_HEIGHT+CORNER_RADIUS+130)-3);
 
 			//draw element text
-			bgCtx.font = "16px sans-serif";
+			bgCtx.font = "16px Georgia, serif";
 			bgCtx.textAlign="center";
 			bgCtx.textBaseline="middle";
 			style(bgCtx,ELEMENT_COLORS[t1][1]);
@@ -371,6 +372,7 @@ window.onload = function(){
 	var hurtCpt;
 
 	var gameIsOver = false;
+	var homeScreen = true;
 
 	//Start seq via right button
 	var started = false;
@@ -1421,6 +1423,8 @@ window.onload = function(){
 			if(lives === 0){
 				gameIsOver = true;
 			}
+
+			aa.play("die");
 		}
 		if(restartCpt>0){
 			restartCpt--;
@@ -1436,7 +1440,7 @@ window.onload = function(){
 		var margin = 14;
 		for(i=0 ; i<lives ; i++){
 			style(statusCtx,ELEMENT_COLORS[NO_ELEMENT][0],"red");
-			drawCamembert(statusCtx, 50 + STATUS_HEIGHT/2 + i * (size+margin), STATUS_HEIGHT/2, size, 0, 0.3, true);
+			drawCamembert(statusCtx, 50 + STATUS_HEIGHT/2 + i * (size+margin), STATUS_HEIGHT/2, size, 0, 0.5, true);
 		}
 
 		if(hurtCpt>0){
@@ -1463,6 +1467,12 @@ window.onload = function(){
 
 
 			if(canBoostCpt>0 && ball.elt != NO_ELEMENT){
+				statusCtx.font = "12px Georgia, serif";
+				statusCtx.textAlign="center";
+				statusCtx.textBaseline="bottom";
+				style(statusCtx,"#aaa");
+				statusCtx.fillText("Left click to boost !",x+width/2,y);
+
 				style(statusCtx, "#fff");
 				width = (width-2)*(canBoostCpt/CAN_BOOST_DURATION) >> 0;
 				x = (screenWidth-width)/2+1;
@@ -1500,7 +1510,7 @@ window.onload = function(){
 		if(s<10) s="0"+s;
 		time = min+":"+s;
 		style(statusCtx,"#fff");
-		statusCtx.font = "18px sans-serif";
+		statusCtx.font = "18px Georgia, serif";
 		statusCtx.textAlign="left";
 		statusCtx.textBaseline="middle";
 		statusCtx.fillText(time, 10,STATUS_HEIGHT/2);
@@ -1510,7 +1520,7 @@ window.onload = function(){
 			statusCtx.textAlign="center";
 			txt = gameIsOver ? "Game over" :
 					  restartCpt ? "Out..." :
-					  startCpt <50 ? "Hold right mouse button" : "Release to launch !";
+					  startCpt <50 ? "Hold right mouse button or space key" : "Release to launch !";
 			statusCtx.fillText(txt, screenWidth/2,STATUS_HEIGHT/2);
 		}
 
@@ -1672,7 +1682,7 @@ window.onload = function(){
 			renderCtx.textBaseline="top";
 			for(i=0 ; i<nTexts ; i++){
 				txt = texts[i];
-				renderCtx.font = txt.s+"px sans-serif";
+				renderCtx.font = txt.s+"px Georgia, serif";
 				renderCtx.fillStyle = txt.c;
 				if(txt.t){
 					renderCtx.textAlign= "center";
@@ -1703,12 +1713,16 @@ window.onload = function(){
 				keys.space = false;
 			}
 		}else{
-			processInput();
-			update();
-			checkGame();
-			updateCamera();
-			render();
-			renderStatus();
+			if(homeScreen){
+				renderHomeScreen();
+			}else{
+				processInput();
+				update();
+				checkGame();
+				updateCamera();
+				render();
+				renderStatus();
+			}
 		}
 
 		if(window.ste) ste();
@@ -1733,7 +1747,7 @@ window.onload = function(){
 		ball.sa = -PI/2;
 
 		//side slopes
-		addMultipleAndMirror( makeLine(0,220,150,100,OBSTACLE));
+		addMultipleAndMirror( makeLine(0,210,140,100,OBSTACLE));
 
 		//moving bumpers
 		movingBumpers = [];
@@ -1766,7 +1780,7 @@ window.onload = function(){
 		//addMultiple( makeCircle(300,600,30,BUMPER));
 
 		//Paddles
-		addMultipleAndMirror( makeLine(150,100,300,30,PADDLE));
+		addMultipleAndMirror( makeLine(140,100,290,30,PADDLE));
 		pads = entities.slice(-8);
 		var pad = pads[0];
 		var padLength = pyth(pad.x-pad.x2, pad.y-pad.y2);
@@ -2078,7 +2092,10 @@ window.onload = function(){
 	function drawCamembert(ctx, x,y,r,angle,dAngle, fill, stroke){
 		ctx.beginPath();
 		ctx.arc(x,y,r, angle+dAngle, angle-dAngle);
-		ctx.lineTo(x,y);
+		//ctx.lineTo(x,y);
+		ctx.quadraticCurveTo(x-0.5*r*Math.cos(angle),y-0.5*r*Math.sin(angle),x+r*Math.cos(angle+dAngle),y+r*Math.sin(angle+dAngle) );
+
+
 		ctx.closePath();
 		if(fill) ctx.fill();
 		if(stroke) ctx.stroke();
@@ -2115,6 +2132,9 @@ window.onload = function(){
 	document.onkeyup = function(e){
 		onkey(false, e);
 
+		if(e.keyCode==27) toggleHome();
+		if(e.keyCode==32 && homeScreen) toggleHome();
+		/*
 		//Debug
 		if(e.keyCode==27){
 			if(!window._stopped){
@@ -2127,6 +2147,7 @@ window.onload = function(){
 			}
 		}
 		if(e.keyCode==13 && window._stopped) tic();
+		*/
 	};
 	document.onkeydown = function(e){
 		onkey(true, e);
@@ -2165,4 +2186,83 @@ window.onload = function(){
 	document.oncontextmenu = function(e){
 		return false;
 	};
+
+	function toggleHome(){
+		homeScreen = !homeScreen;
+	}
+
+	var homeCpt = 0;
+	function renderHomeScreen(){
+		homeCpt++;
+		var w = 600;
+		var h = 600;
+		clearCanvas(renderCtx);
+		clearCanvas(statusCtx);
+		renderCtx.save();
+		fillRect(renderCtx,0,0,TOTAL_SIZE,TOTAL_SIZE, tileCanvas);
+
+		renderCtx.translate(screenWidth/2-w/2,20);
+		fillRect(renderCtx,0,0,w,h, "rgba(0,0,0,0.5)");
+
+		var lightGreen = "#b7f1d5";
+		var darkGreen = "#0a7e45";
+		renderCtx.font = "96px impact";
+		renderCtx.textAlign="center";
+		renderCtx.textBaseline="top";
+		style(renderCtx,lightGreen,darkGreen,2);
+		renderCtx.fillText("Peanball",w/2,5);
+		renderCtx.strokeText("Peanball",w/2,5);
+
+		var angle = Math.abs(Math.cos(homeCpt*0.05)*0.5);
+		style(renderCtx, ELEMENT_COLORS[NO_ELEMENT][0]);
+		//drawCamembert(renderCtx,245,28,17,-0.35,angle,YES,YES); // looks like an X rated game
+		drawCamembert(renderCtx,20,h-20,40,0,angle,YES,YES);
+		var ringSize = ringCanvas.height;
+		for(var i=0 ; i<16 ; i++){
+			renderCtx.drawImage(ringCanvas,
+				ringSize*4 , 0, ringSize, ringSize,
+				68+(10+ringSize)*i ,h-30, ringSize,ringSize);
+		}
+
+		renderCtx.font = "24px impact";
+		renderCtx.textAlign="right";
+		style(renderCtx,"#fff");
+		renderCtx.fillText("A game by @Saturnyn",w-128,105);
+
+		renderCtx.font = "24px impact";
+		renderCtx.textAlign="right";
+		style(renderCtx,lightGreen);
+		renderCtx.fillText("Goal:",130,170);
+		renderCtx.fillText("Controls:",130,210);
+		renderCtx.fillText("Elements:",130,300);
+
+		renderCtx.font = "22px Georgia, serif";
+		renderCtx.textAlign="left";
+		style(renderCtx,"#fff");
+		renderCtx.fillText("Catch all the rings as fast as possible",140,174);
+		renderCtx.font = "16px Georgia, serif";
+		renderCtx.fillText("• Hold and release SPACE or RIGHT CLICK to launch the ball",140,215);
+		renderCtx.fillText("• Use WASD or ARROW keys to control flippers",140,240);
+		renderCtx.fillText("• Use LEFT CLICK to give a boost (while wings are displayed)",140,265);
+
+		renderCtx.fillText("• Flippers give the ball an elemental power (water/fire/earth/air)",140,305);
+		renderCtx.fillText("• Those powers allows you to beat elemental monsters",140,330);
+		renderCtx.fillText("    ‣ Fire to beat Ice , Water to beat Fire",140,355);
+		renderCtx.fillText("    ‣ Air to beat Sand , Earth to beat Cristal",140,380);
+		renderCtx.fillText("• Avoid touching other elements",140,405);
+
+		renderCtx.textAlign = "right";
+		style(renderCtx,lightGreen);
+		renderCtx.fillText("Mega thanks to Mod, Cédric and @Floriaen for their support !",w,h);
+
+
+
+		renderCtx.font = "32px impact";
+		renderCtx.textAlign="center";
+		style(renderCtx,lightGreen);
+		renderCtx.fillText("Press SPACE to start the game",w/2,h-130);
+		//renderCtx.strokeText("Press SPACE to start the game",w/2,h-130);
+
+		renderCtx.restore();
+	}
 };
