@@ -275,7 +275,7 @@ window.onload = function(){
 		style(monsterCtx,0,"#fff",2);
 		drawCircle(monsterCtx,s2,s2,s2-4,NO,YES);
 		//Reflection
-		style(0,0,1);
+		style(monsterCtx,0,0,1);
 		monsterCtx.beginPath();
 		monsterCtx.arc(s2, s2, s2-8, 3.2, 4.4);
 		monsterCtx.stroke();
